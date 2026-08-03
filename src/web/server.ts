@@ -62,15 +62,8 @@ function buildFilter(params: URLSearchParams): { where: string[]; args: Array<st
   if (params.get('remote') === '1') where.push('remote = 1');
   if (params.get('confirmed') === '1') where.push("canada_confidence = 'confirmed'");
 
-  // Drop stale postings. Most are long closed, and an internship posted a year ago is
-  // noise regardless. Sources with no date are kept: `posted_at` is null for a third
-  // of rows, so filtering on it would discard them all.
-  const maxAgeDays = Number(params.get('max_age_days') ?? 30);
-  if (Number.isFinite(maxAgeDays) && maxAgeDays > 0) {
-    where.push(`(posted_at IS NULL OR posted_at >= datetime('now', ?))`);
-    args.push(`-${Math.floor(maxAgeDays)} days`);
-  }
-
+  // No age filter here on purpose: postings older than 30 days are deleted by the
+  // scrape (see pruneStale), so everything in the table is current by construction.
   return { where, args };
 }
 

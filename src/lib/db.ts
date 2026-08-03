@@ -165,6 +165,25 @@ export function recordRun(
   `).run(new Date().toISOString(), r.source, r.ok ? 1 : 0, r.fetched, r.kept, r.inserted, r.updated, r.ms, r.error ?? null);
 }
 
+/**
+ * Delete postings older than `days`, so the table only ever holds current listings.
+ *
+ * Two deliberate exemptions:
+ *  - rows with no `posted_at` (about a third of them, from lists with no date column)
+ *    would all be deleted by a naive date comparison
+ *  - anything you have marked, since that is your own tracking rather than a listing,
+ *    and losing an applied job because the posting aged out would be worse than a
+ *    stale row
+ */
+export function pruneStale(db: DatabaseSync, days = 30): number {
+  return db.prepare(`
+    DELETE FROM jobs
+    WHERE posted_at IS NOT NULL
+      AND posted_at < datetime('now', ?)
+      AND status = 'new'
+  `).run(`-${Math.floor(days)} days`).changes as number;
+}
+
 export function setStatus(db: DatabaseSync, id: string, status: JobStatus): void {
   db.prepare('UPDATE jobs SET status = ? WHERE id = ?').run(status, id);
 }

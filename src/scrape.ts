@@ -8,7 +8,7 @@
  */
 
 import type { Adapter, SourceResult } from './types.js';
-import { openDb, upsertJobs, recordRun } from './lib/db.js';
+import { openDb, upsertJobs, recordRun, pruneStale } from './lib/db.js';
 import { normalize } from './lib/normalize.js';
 import { notifyNewJobs } from './lib/notify.js';
 import { githubAdapter } from './adapters/github-md.js';
@@ -54,6 +54,9 @@ export function allAdapters(): Adapter[] {
  * NOC occupation names, so no title ever says "intern". Kept working and reachable by
  * name in case that changes, but off the default path.
  */
+/** Postings older than this are deleted, not merely hidden. */
+const MAX_AGE_DAYS = Number(process.env.JT_MAX_AGE_DAYS ?? 30);
+
 export function optionalAdapters(): Adapter[] {
   return [jobBankAdapter()];
 }
@@ -98,6 +101,10 @@ export async function runScrape(adapters: Adapter[]): Promise<SourceResult[]> {
       console.error(`✗ ${adapter.name.padEnd(11)} FAILED: ${msg.slice(0, 200)}`);
     }
   }
+
+  // Age out old listings once every adapter has had its chance to re-confirm them.
+  const pruned = pruneStale(db, MAX_AGE_DAYS);
+  if (pruned > 0) console.log(`  pruned ${pruned} postings older than ${MAX_AGE_DAYS} days`);
 
   const total = db.prepare('SELECT COUNT(*) AS n FROM jobs').get() as { n: number };
   const fresh = db.prepare("SELECT COUNT(*) AS n FROM jobs WHERE status = 'new'").get() as { n: number };

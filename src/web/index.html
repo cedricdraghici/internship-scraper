@@ -117,11 +117,9 @@ function params() {
 }
 
 function renderCount() {
-  // `matching` counts rows that pass the current filters, not every row in the
-  // database, so this never compares the visible list against postings the filters
-  // deliberately excluded. "of N" appears only when the 500-row cap truncates.
-  const label = shown < matching ? `${shown} of ${matching}` : `${matching}`;
-  $('count').textContent = `${label} · ${unreviewed} unreviewed`;
+  // Stale postings are deleted by the scrape rather than filtered here, so `matching`
+  // is the whole board unless you have narrowed it with the controls above.
+  $('count').textContent = `${matching} total · ${unreviewed} unreviewed`;
 }
 
 function fillSelect(el, items, label = (v) => v) {
