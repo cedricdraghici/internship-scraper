@@ -1,32 +1,30 @@
-# Fly.io config. Deploy with:  fly launch --no-deploy   then   fly deploy
+# fly.toml app configuration file generated for cedric-job-tracker on 2026-08-03T19:56:59+09:00
 #
-# Change `app` to something unique — Fly app names are global.
-app = "cedric-job-tracker"
-primary_region = "yyz"  # Toronto
+# See https://fly.io/docs/reference/configuration/ for information about how to use this file.
+#
+
+app = 'cedric-job-tracker'
+primary_region = 'yyz'
 
 [build]
-  dockerfile = "Dockerfile"
+  dockerfile = 'Dockerfile'
 
 [env]
-  PORT = "8080"
-  JT_DATA_DIR = "/data"
-  JT_SCRAPE_INTERVAL_HOURS = "12"
+  JT_DATA_DIR = '/data'
+  JT_SCRAPE_INTERVAL_HOURS = '12'
+  PORT = '8080'
 
-# The database lives here. Without this volume every redeploy would wipe the
-# applied/interview marks along with the container.
 [[mounts]]
-  source = "jobtracker_data"
-  destination = "/data"
+  source = 'jobtracker_data'
+  destination = '/data'
 
 [http_service]
   internal_port = 8080
   force_https = true
-  # Keep one machine alive so the board is up 24/7 and the scrape schedule actually
-  # fires. Scaling to zero would suspend the timer between visits.
-  auto_stop_machines = false
+  auto_stop_machines = 'off'
   auto_start_machines = true
   min_machines_running = 1
 
 [[vm]]
-  size = "shared-cpu-1x"
-  memory = "512mb"
+  size = 'shared-cpu-1x'
+  memory = '512mb'

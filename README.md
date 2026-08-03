@@ -31,7 +31,12 @@ fly auth signup                      # or: fly auth login
 fly launch --no-deploy --copy-config
 
 fly volumes create jobtracker_data --size 1 --region yyz
-fly secrets set JT_PASSWORD='pick-a-long-password'
+
+# Generate a real password — don't paste this line as-is. It prints the value once;
+# save it somewhere first, because Fly stores secrets one-way and can't show them again.
+node -e "console.log(require('crypto').randomBytes(18).toString('base64url'))"
+fly secrets set JT_PASSWORD='<the value it printed>'
+
 fly deploy
 fly open
 ```
