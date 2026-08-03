@@ -56,15 +56,14 @@ function queryJobs(params: URLSearchParams): JobRow[] {
   }
   if (params.get('remote') === '1') where.push('remote = 1');
   if (params.get('confirmed') === '1') where.push("canada_confidence = 'confirmed'");
-  if (params.get('hide_closed') === '1') where.push("status NOT IN ('rejected')");
-
-  // Default to real posting date. Sorting purely by first_seen_at is useless on a fresh
-  // db: every row shares one timestamp, so a single source's bulk insert fills the page.
-  const sortCol = params.get('sort') === 'found'
-    ? 'first_seen_at'
-    : 'COALESCE(posted_at, first_seen_at)';
+  // Sort by real posting date. Postings with no date sort last in both directions
+  // rather than inheriting the scrape timestamp — ~a third of rows come from repos
+  // with no date column, and letting them borrow "today" pushed them above genuinely
+  // recent postings and made "newest" useless.
+  const dir = params.get('sort') === 'oldest' ? 'ASC' : 'DESC';
   const sql = `SELECT * FROM jobs ${where.length ? `WHERE ${where.join(' AND ')}` : ''}
-               ORDER BY ${sortCol} DESC, company ASC LIMIT 500`;
+               ORDER BY (posted_at IS NULL) ASC, posted_at ${dir},
+                        first_seen_at DESC, company ASC LIMIT 500`;
   return db.prepare(sql).all(...args) as unknown as JobRow[];
 }
 

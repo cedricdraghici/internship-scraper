@@ -81,11 +81,10 @@
     <select id="type"><option value="">Intern + co-op</option></select>
     <select id="province"><option value="">All provinces</option></select>
     <select id="sort">
-      <option value="posted">Date posted</option>
-      <option value="found">Newest found</option>
+      <option value="newest">Newest posted</option>
+      <option value="oldest">Oldest posted</option>
     </select>
     <label class="check"><input type="checkbox" id="remote" /> Remote</label>
-    <label class="check"><input type="checkbox" id="hide_closed" checked /> Hide rejected</label>
   </div>
 </header>
 
@@ -99,7 +98,7 @@ const $ = (id) => document.getElementById(id);
 const STATUSES = ['new', 'applied', 'interview', 'rejected', 'offer'];
 // Stored value -> button label, where the two differ.
 const STATUS_LABELS = { interview: 'interview scheduled' };
-const controls = ['q','source','category','type','province','sort','remote','hide_closed'];
+const controls = ['q','source','category','type','province','sort','remote'];
 let facetsLoaded = false;
 
 function params() {

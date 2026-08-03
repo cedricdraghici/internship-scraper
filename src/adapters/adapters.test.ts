@@ -1,7 +1,7 @@
 /** Run: npm test */
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { parseMarkdownTables } from './github-md.js';
+import { parseMarkdownTables, dateCellToIso } from './github-md.js';
 import { parseWorkdayUrl, parseWorkdayPostedOn } from './workday.js';
 import { parseSimplifyListings } from './simplify.js';
 import { collectLocations, mapEmploymentType } from './ashby.js';
@@ -42,6 +42,32 @@ test('github: column order comes from the header row', () => {
   assert.ok(b);
   assert.equal(b.company, 'Acme Corp');
   assert.equal(b.title, 'Backend Intern');
+});
+
+test('github: date cells parse as both absolute dates and relative ages', () => {
+  const now = new Date('2026-08-03T00:00:00.000Z');
+  // Absolute — the Canadian list's format. Only handling relative ages left 173 of
+  // 282 rows with no posted_at, which broke "newest first".
+  assert.equal(dateCellToIso('Jul 31, 2026', now)?.slice(0, 10), '2026-07-31');
+  assert.equal(dateCellToIso('2026-07-31', now)?.slice(0, 10), '2026-07-31');
+  // Relative — speedyapply's format.
+  assert.equal(dateCellToIso('5d', now)?.slice(0, 10), '2026-07-29');
+  assert.equal(dateCellToIso('2mo', now)?.slice(0, 10), '2026-06-04');
+  // Junk must not become a date.
+  assert.equal(dateCellToIso('', now), null);
+  assert.equal(dateCellToIso('Apply', now), null);
+  assert.equal(dateCellToIso('4', now), null);
+});
+
+test('github: a posting date is read from the table', () => {
+  const md = [
+    '| Company | Role | Location | Apply | Date Posted |',
+    '|---|---|---|---|---|',
+    '| InstaLILY | SWE Co-op | Toronto, ON | [Apply](https://example.com/1) | Jul 31, 2026 |',
+  ].join('\n');
+  const [job] = parseMarkdownTables(md, 'test');
+  assert.ok(job);
+  assert.equal(job.postedAt?.slice(0, 10), '2026-07-31');
 });
 
 test('github: legend tables are not parsed as jobs', () => {

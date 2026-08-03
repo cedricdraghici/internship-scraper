@@ -69,18 +69,56 @@ function cellUrl(cell: string): string | null {
   return bare?.[0]?.replace(/[)>,]+$/, '') ?? null;
 }
 
-/** "5d" / "2mo" / "3h" -> approximate ISO timestamp. */
-function ageToIso(age: string): string | null {
-  const m = age.trim().match(/^(\d+)\s*(h|d|w|mo|y)$/i);
-  if (!m) return null;
-  const n = parseInt(m[1] ?? '0', 10);
-  const unit = (m[2] ?? '').toLowerCase();
-  const hours = unit === 'h' ? n
-    : unit === 'd' ? n * 24
-    : unit === 'w' ? n * 24 * 7
-    : unit === 'mo' ? n * 24 * 30
-    : n * 24 * 365;
-  return new Date(Date.now() - hours * 3600_000).toISOString();
+/**
+ * A date cell -> ISO timestamp.
+ *
+ * These repos use two conventions: a relative age ("5d", "2mo") or an absolute date
+ * ("Jul 31, 2026", "2026-07-31"). Only handling the relative form left 173 of 282 rows
+ * with no posted_at, which made "newest first" meaningless — they all fell back to the
+ * scrape timestamp and tied for first place.
+ */
+export function dateCellToIso(cell: string, now = new Date()): string | null {
+  const s = cell.trim();
+  if (!s) return null;
+
+  const rel = s.match(/^(\d+)\s*(h|d|w|mo|y)$/i);
+  if (rel) {
+    const n = parseInt(rel[1] ?? '0', 10);
+    const unit = (rel[2] ?? '').toLowerCase();
+    const hours = unit === 'h' ? n
+      : unit === 'd' ? n * 24
+      : unit === 'w' ? n * 24 * 7
+      : unit === 'mo' ? n * 24 * 30
+      : n * 24 * 365;
+    return new Date(now.getTime() - hours * 3600_000).toISOString();
+  }
+
+  // Absolute dates. Parsed explicitly rather than via `new Date(s)`, which reads
+  // "Jul 31, 2026" as *local* midnight (landing a day early in a UTC-negative zone)
+  // and happily turns a bare "4" into a year-2001 timestamp.
+  const iso = s.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if (iso) return isoFrom(Number(iso[1]), Number(iso[2]) - 1, Number(iso[3]), now);
+
+  // "Jul 31, 2026" / "July 31, 2026" / "31 Jul 2026".
+  const named = s.match(/^([A-Za-z]{3,9})\.?\s+(\d{1,2}),?\s+(\d{4})$/)
+    ?? s.match(/^(\d{1,2})\s+([A-Za-z]{3,9})\.?,?\s+(\d{4})$/);
+  if (named) {
+    const dayFirst = /^\d/.test(s);
+    const monthName = (dayFirst ? named[2] : named[1] ?? '').slice(0, 3).toLowerCase();
+    const day = Number(dayFirst ? named[1] : named[2]);
+    const month = MONTHS.indexOf(monthName);
+    if (month >= 0) return isoFrom(Number(named[3]), month, day, now);
+  }
+  return null;
+}
+
+const MONTHS = ['jan', 'feb', 'mar', 'apr', 'may', 'jun', 'jul', 'aug', 'sep', 'oct', 'nov', 'dec'];
+
+/** Build a UTC ISO date, rejecting years outside a plausible posting window. */
+function isoFrom(year: number, month: number, day: number, now: Date): string | null {
+  if (year < 2000 || year > now.getUTCFullYear() + 2) return null;
+  const d = new Date(Date.UTC(year, month, day));
+  return Number.isNaN(d.getTime()) ? null : d.toISOString();
 }
 
 function splitRow(line: string): string[] {
@@ -168,7 +206,13 @@ export function parseMarkdownTables(md: string, sourceUrl: string): RawJob[] {
     if (!url) url = cellUrl(cells[0] ?? '');
     if (!url) continue;
 
-    const ageCell = cells.length > 3 ? cellText(cells[cells.length - 1] ?? '') : '';
+    // The date column isn't always last (some tables end with an Apply button), so
+    // scan right-to-left for the first cell that parses as a date.
+    let postedAt: string | null = null;
+    for (let i = cells.length - 1; i >= 1 && !postedAt; i--) {
+      if (i === cols.company || i === cols.title || i === cols.location) continue;
+      postedAt = dateCellToIso(cellText(cells[i] ?? ''));
+    }
 
     jobs.push({
       title,
@@ -177,7 +221,7 @@ export function parseMarkdownTables(md: string, sourceUrl: string): RawJob[] {
       remote: /remote/i.test(location),
       url,
       source: 'github',
-      postedAt: ageToIso(ageCell),
+      postedAt,
       salaryRaw: null,
       salaryMin: null,
       salaryMax: null,
