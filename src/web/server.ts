@@ -62,7 +62,13 @@ function queryJobs(params: URLSearchParams): JobRow[] {
   // with no date column, and letting them borrow "today" pushed them above genuinely
   // recent postings and made "newest" useless.
   const dir = params.get('sort') === 'oldest' ? 'ASC' : 'DESC';
-  const sql = `SELECT * FROM jobs ${where.length ? `WHERE ${where.join(' AND ')}` : ''}
+  // Name the columns rather than SELECT *: `description` alone is ~32KB across the
+  // table and the dashboard never renders it, so it was a third of every response.
+  const sql = `SELECT id, title, company, location, province, remote, url, source,
+                      sources, posted_at, first_seen_at, salary_raw, type,
+                      role_category, matched_by, canada_confidence, canada_matched_by,
+                      status
+               FROM jobs ${where.length ? `WHERE ${where.join(' AND ')}` : ''}
                ORDER BY (posted_at IS NULL) ASC, posted_at ${dir},
                         first_seen_at DESC, company ASC LIMIT 500`;
   return db.prepare(sql).all(...args) as unknown as JobRow[];
