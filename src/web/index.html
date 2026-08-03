@@ -85,7 +85,6 @@
       <option value="found">Newest found</option>
     </select>
     <label class="check"><input type="checkbox" id="remote" /> Remote</label>
-    <label class="check"><input type="checkbox" id="confirmed" /> Confirmed CA only</label>
     <label class="check"><input type="checkbox" id="hide_closed" checked /> Hide rejected</label>
   </div>
 </header>
@@ -98,7 +97,7 @@
 <script>
 const $ = (id) => document.getElementById(id);
 const STATUSES = ['new', 'interested', 'applied', 'rejected', 'offer'];
-const controls = ['q','source','category','type','province','sort','remote','confirmed','hide_closed'];
+const controls = ['q','source','category','type','province','sort','remote','hide_closed'];
 let facetsLoaded = false;
 
 function params() {
