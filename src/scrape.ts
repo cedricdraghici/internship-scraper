@@ -37,7 +37,7 @@ export async function runScrape(adapters: Adapter[]): Promise<SourceResult[]> {
     const started = Date.now();
     try {
       const raw = await adapter.fetch();
-      const { keptJobs, droppedNotCanada, droppedNotRole } = normalize(raw);
+      const { keptJobs, droppedNotCanada, droppedNotRole, droppedNotStudent } = normalize(raw);
       const { inserted, updated } = upsertJobs(db, keptJobs);
       const r: SourceResult = {
         source: adapter.name,
@@ -54,7 +54,7 @@ export async function runScrape(adapters: Adapter[]): Promise<SourceResult[]> {
         `✓ ${adapter.name.padEnd(11)} fetched ${String(raw.length).padStart(5)}  ` +
         `kept ${String(keptJobs.length).padStart(4)}  new ${String(inserted).padStart(4)}  ` +
         `seen-again ${String(updated).padStart(4)}  ` +
-        `(dropped: ${droppedNotCanada} non-CA, ${droppedNotRole} off-role)  ${r.ms}ms`,
+        `(dropped: ${droppedNotStudent} non-intern, ${droppedNotCanada} non-CA, ${droppedNotRole} off-role)  ${r.ms}ms`,
       );
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);

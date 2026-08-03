@@ -73,17 +73,13 @@ function facets() {
     (db.prepare(`SELECT ${c} AS v, COUNT(*) AS n FROM jobs WHERE ${c} IS NOT NULL AND ${c} != ''
                  GROUP BY ${c} ORDER BY n DESC`).all() as unknown as Array<{ v: string; n: number }>);
   const one = (sql: string) => (db.prepare(sql).get() as { n: number }).n;
-  const students = one("SELECT COUNT(*) AS n FROM jobs WHERE type IN ('intern', 'co-op')");
   return {
     sources: col('source'),
     provinces: col('province'),
     categories: col('role_category'),
-    // Pin the intern+co-op grouping to the top of the list — it's the common case
-    // here, and the two stored values are the same thing to a student.
-    types: [
-      ...(students > 0 ? [{ v: 'students', n: students, label: 'intern + co-op' }] : []),
-      ...col('type'),
-    ],
+    // Only intern and co-op exist in the db — the scrape drops everything else — so
+    // this is a sub-filter between the two, not a way to reach other job types.
+    types: col('type'),
     statuses: col('status'),
     total: one('SELECT COUNT(*) AS n FROM jobs'),
     fresh: one("SELECT COUNT(*) AS n FROM jobs WHERE status = 'new'"),

@@ -43,11 +43,13 @@ the UI only ever reads from the database, never live-scrapes.
 
 ## Roles to target
 
-Two filters decide whether a posting is kept: **is it in Canada** (below) and **is it a
-role I want** (here). Both must pass.
+Three filters decide whether a posting is kept: **is it an internship**, **is it in
+Canada** (below), and **is it a role I want** (here). All three must pass.
 
-**Internships and co-ops** are in scope alongside full-time roles — a large share of the
-GitHub repo listings are intern postings, and those are wanted, not noise.
+**Internships and co-ops only.** Full-time, new-grad and contract roles are dropped at
+scrape time and never enter the database — this is a tracker for student positions, not
+a general job board. Intern and co-op mean the same thing here; employers just word
+them differently.
 
 Titles to match:
 - Software Developer / Software Engineer (and SDE, SWE)
@@ -78,7 +80,8 @@ Every adapter outputs this, whatever the source looks like:
 - `title`, `company`, `location` (+ parsed province, `remote` flag)
 - `url` (canonical application link), `source`, `posted_at`, `first_seen_at`
 - `salary` (raw + parsed range/currency when available)
-- `type` — intern / co-op / new-grad / full-time / contract
+- `type` — intern / co-op (the other values exist in the classifier, but anything that
+  isn't one of these two is filtered out before storage)
 - `role_category` — swe / devops / ai-ml, derived from the title match rules
 - `matched_by` — which title rule fired, for tuning the filter
 - `sponsorship` / `citizenship` notes when the source states them
@@ -96,7 +99,7 @@ flag it rather than silently dropping it.
 ## What the site should do
 
 - One dashboard listing everything, newest first
-- Filter by source, location/province, remote, job type (incl. intern/co-op),
+- Filter by source, location/province, remote, job type (intern vs co-op),
   role category (swe / devops / ai-ml), salary, keyword, date posted
 - Saved searches and a "new since last visit" view
 - Per-job status tracking so I can mark applied/rejected and not see it again

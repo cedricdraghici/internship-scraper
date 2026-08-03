@@ -1,8 +1,8 @@
-/** Applies both filters (Canada + role) and fills in bookkeeping fields. */
+/** Applies all three filters (student + Canada + role) and fills in bookkeeping fields. */
 
 import type { JobPosting, RawJob } from '../types.js';
 import { matchCanada } from './canada.js';
-import { matchRole } from './roles.js';
+import { matchRole, isStudentType } from './roles.js';
 import { jobId } from './db.js';
 
 export interface NormalizeStats {
@@ -10,6 +10,7 @@ export interface NormalizeStats {
   keptJobs: JobPosting[];
   droppedNotCanada: number;
   droppedNotRole: number;
+  droppedNotStudent: number;
 }
 
 /** Parse a salary string like "$120,000 - $150,000 CAD" into a range. */
@@ -37,6 +38,7 @@ export function normalize(raw: RawJob[]): NormalizeStats {
   const seen = new Set<string>();
   let droppedNotCanada = 0;
   let droppedNotRole = 0;
+  let droppedNotStudent = 0;
   const now = new Date().toISOString();
 
   for (const j of raw) {
@@ -45,6 +47,16 @@ export function normalize(raw: RawJob[]): NormalizeStats {
       droppedNotRole++;
       continue;
     }
+
+    // This tracker is internships-only: full-time, new-grad and contract roles are
+    // dropped here rather than filtered in the UI, so they never reach the database.
+    // An adapter-supplied type (Ashby's explicit "Intern") wins over the title guess.
+    const type = j.type ?? role.type;
+    if (!isStudentType(type)) {
+      droppedNotStudent++;
+      continue;
+    }
+
     const ca = matchCanada(j.location);
     if (!ca.isCanada) {
       droppedNotCanada++;
@@ -66,7 +78,7 @@ export function normalize(raw: RawJob[]): NormalizeStats {
       salaryMin: j.salaryMin ?? salary.min,
       salaryMax: j.salaryMax ?? salary.max,
       salaryCurrency: j.salaryCurrency ?? salary.currency,
-      type: j.type ?? role.type,
+      type,
       roleCategory: role.category,
       matchedBy: role.matchedBy,
       canadaConfidence: ca.confidence,
@@ -75,5 +87,5 @@ export function normalize(raw: RawJob[]): NormalizeStats {
     });
   }
 
-  return { total: raw.length, keptJobs, droppedNotCanada, droppedNotRole };
+  return { total: raw.length, keptJobs, droppedNotCanada, droppedNotRole, droppedNotStudent };
 }

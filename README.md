@@ -1,7 +1,9 @@
-# Job Tracker — Canada
+# Job Tracker — Internships, Canada
 
-Personal job aggregator. Pulls software/DevOps/AI postings in Canada from ATS APIs,
-GitHub job-list repos, and Job Bank Canada into one filterable dashboard.
+Personal job aggregator. Pulls software/DevOps/AI **internship and co-op** postings in
+Canada from ATS APIs, GitHub job-list repos, and Job Bank Canada into one filterable
+dashboard. Full-time, new-grad and contract roles are dropped at scrape time and never
+reach the database.
 
 See [CLAUDE.md](CLAUDE.md) for the design rationale.
 
@@ -13,9 +15,9 @@ npm run scrape     # fetch from all sources into data/jobs.db (~2 min)
 npm run web        # dashboard at http://localhost:4000
 ```
 
-Hunting internships: hit **🎓 Interns only** in the header, or pick
-**intern + co-op** from the type dropdown. Employers label the same job either way,
-so the two are grouped into one filter.
+Everything in the dashboard is an internship or co-op. The type dropdown narrows
+between the two, but employers label the same job either way, so the default
+(both) is usually what you want.
 
 ## Commands
 
@@ -32,14 +34,17 @@ so the two are grouped into one filter.
 ## How it works
 
 ```
-adapters ──► normalize (role filter + Canada filter) ──► dedupe ──► SQLite ──► web UI
+adapters ──► normalize (intern + role + Canada filters) ──► dedupe ──► SQLite ──► web UI
 ```
 
-A posting is kept only if it passes **both** filters:
+A posting is kept only if it passes **all three** filters:
 
+- **Student track** — intern or co-op only. Full-time, new-grad and contract roles are
+  discarded. An adapter that states the type outright (Ashby's `employmentType`) beats
+  the title guess.
 - **Role** — software engineer/developer, DevOps/SRE/platform, AI/ML engineer.
-  Internships and co-ops included. Excludes sales/solutions engineers, other
-  engineering disciplines, and management. English and French titles.
+  Excludes sales/solutions engineers, other engineering disciplines, and management.
+  English and French titles.
   Intern titles often drop the head word ("Backend Intern", "Engineering Co-op",
   "Stagiaire en développement de logiciels"), so those shapes match too — while
   `Internal Audit` and `International Tax` deliberately do not.
