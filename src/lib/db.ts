@@ -90,6 +90,8 @@ export function openDb(path = DB_PATH): DatabaseSync {
 export interface UpsertResult {
   inserted: number;
   updated: number;
+  /** The rows that were genuinely new this run — what notifications announce. */
+  newJobs: JobPosting[];
 }
 
 /**
@@ -115,6 +117,8 @@ export function upsertJobs(db: DatabaseSync, jobs: JobPosting[]): UpsertResult {
 
   let inserted = 0;
   let updated = 0;
+  /** The rows that were genuinely new, so callers can announce them. */
+  const newJobs: JobPosting[] = [];
   const now = new Date().toISOString();
 
   db.exec('BEGIN');
@@ -140,6 +144,7 @@ export function upsertJobs(db: DatabaseSync, jobs: JobPosting[]): UpsertResult {
           j.sponsorship, j.description, j.status,
         );
         inserted++;
+        newJobs.push(j);
       }
     }
     db.exec('COMMIT');
@@ -147,7 +152,7 @@ export function upsertJobs(db: DatabaseSync, jobs: JobPosting[]): UpsertResult {
     db.exec('ROLLBACK');
     throw err;
   }
-  return { inserted, updated };
+  return { inserted, updated, newJobs };
 }
 
 export function recordRun(

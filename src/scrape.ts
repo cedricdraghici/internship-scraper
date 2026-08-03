@@ -10,6 +10,7 @@
 import type { Adapter, SourceResult } from './types.js';
 import { openDb, upsertJobs, recordRun } from './lib/db.js';
 import { normalize } from './lib/normalize.js';
+import { notifyNewJobs } from './lib/notify.js';
 import { githubAdapter } from './adapters/github-md.js';
 import { greenhouseAdapter, leverAdapter } from './adapters/ats.js';
 import { jobBankAdapter } from './adapters/jobbank.js';
@@ -50,7 +51,9 @@ export async function runScrape(adapters: Adapter[]): Promise<SourceResult[]> {
     try {
       const raw = await adapter.fetch();
       const { keptJobs, droppedNotCanada, droppedNotRole, droppedNotStudent } = normalize(raw);
-      const { inserted, updated } = upsertJobs(db, keptJobs);
+      const { inserted, updated, newJobs } = upsertJobs(db, keptJobs);
+      // Push before the next adapter runs, so an alert lands as soon as its posting does.
+      await notifyNewJobs(newJobs);
       const r: SourceResult = {
         source: adapter.name,
         ok: true,
