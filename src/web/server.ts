@@ -61,6 +61,15 @@ function queryJobs(params: URLSearchParams): JobRow[] {
   // rather than inheriting the scrape timestamp, ~a third of rows come from repos
   // with no date column, and letting them borrow "today" pushed them above genuinely
   // recent postings and made "newest" useless.
+  // Drop stale postings. Most are long closed, and an internship posted a year ago is
+  // noise regardless. Sources with no date are kept: `posted_at` is null for a third
+  // of rows, so filtering on it would discard them all.
+  const maxAgeDays = Number(params.get('max_age_days') ?? 30);
+  if (Number.isFinite(maxAgeDays) && maxAgeDays > 0) {
+    where.push(`(posted_at IS NULL OR posted_at >= datetime('now', ?))`);
+    args.push(`-${Math.floor(maxAgeDays)} days`);
+  }
+
   const dir = params.get('sort') === 'oldest' ? 'ASC' : 'DESC';
   // Name the columns rather than SELECT *: `description` alone is ~32KB across the
   // table and the dashboard never renders it, so it was a third of every response.
@@ -69,8 +78,8 @@ function queryJobs(params: URLSearchParams): JobRow[] {
                       role_category, matched_by, canada_confidence, canada_matched_by,
                       status
                FROM jobs ${where.length ? `WHERE ${where.join(' AND ')}` : ''}
-               ORDER BY (posted_at IS NULL) ASC, posted_at ${dir},
-                        first_seen_at DESC, company ASC LIMIT 500`;
+               ORDER BY COALESCE(posted_at, first_seen_at) ${dir}, company ASC
+               LIMIT 500`;
   return db.prepare(sql).all(...args) as unknown as JobRow[];
 }
 
