@@ -104,6 +104,7 @@ let facetsLoaded = false;
 let total = 0;
 let unreviewed = 0;
 let shown = 0;
+let matching = 0;
 
 function params() {
   const p = new URLSearchParams();
@@ -116,13 +117,11 @@ function params() {
 }
 
 function renderCount() {
-  // Lead with what's on screen. The default view hides postings over 30 days old, so
-  // showing only the database totals made a filtered list look like the whole board.
-  const parts = [];
-  if (shown !== total) parts.push(`${shown} shown of ${total}`);
-  else parts.push(`${total} total`);
-  parts.push(`${unreviewed} unreviewed`);
-  $('count').textContent = parts.join(' · ');
+  // `matching` counts rows that pass the current filters, not every row in the
+  // database, so this never compares the visible list against postings the filters
+  // deliberately excluded. "of N" appears only when the 500-row cap truncates.
+  const label = shown < matching ? `${shown} of ${matching}` : `${matching}`;
+  $('count').textContent = `${label} · ${unreviewed} unreviewed`;
 }
 
 function fillSelect(el, items, label = (v) => v) {
@@ -155,11 +154,12 @@ function ago(iso) {
 
 async function load() {
   const res = await fetch('/api/jobs?' + params());
-  const { jobs, facets } = await res.json();
+  const { jobs, facets, matching: matchingCount } = await res.json();
 
   total = facets.total;
   unreviewed = facets.fresh;
   shown = jobs.length;
+  matching = matchingCount ?? jobs.length;
   renderCount();
 
   if (!facetsLoaded) {

@@ -26,7 +26,11 @@ interface JobRow {
 
 const db = openDb();
 
-function queryJobs(params: URLSearchParams): JobRow[] {
+/**
+ * The WHERE clause for the current view. Shared by the row query and the count, so the
+ * header can report "N of M" against the same filters rather than the whole table.
+ */
+function buildFilter(params: URLSearchParams): { where: string[]; args: Array<string | number> } {
   const where: string[] = [];
   const args: Array<string | number> = [];
 
@@ -57,10 +61,7 @@ function queryJobs(params: URLSearchParams): JobRow[] {
   }
   if (params.get('remote') === '1') where.push('remote = 1');
   if (params.get('confirmed') === '1') where.push("canada_confidence = 'confirmed'");
-  // Sort by real posting date. Postings with no date sort last in both directions
-  // rather than inheriting the scrape timestamp, ~a third of rows come from repos
-  // with no date column, and letting them borrow "today" pushed them above genuinely
-  // recent postings and made "newest" useless.
+
   // Drop stale postings. Most are long closed, and an internship posted a year ago is
   // noise regardless. Sources with no date are kept: `posted_at` is null for a third
   // of rows, so filtering on it would discard them all.
@@ -69,6 +70,12 @@ function queryJobs(params: URLSearchParams): JobRow[] {
     where.push(`(posted_at IS NULL OR posted_at >= datetime('now', ?))`);
     args.push(`-${Math.floor(maxAgeDays)} days`);
   }
+
+  return { where, args };
+}
+
+function queryJobs(params: URLSearchParams): JobRow[] {
+  const { where, args } = buildFilter(params);
 
   const dir = params.get('sort') === 'oldest' ? 'ASC' : 'DESC';
   // Name the columns rather than SELECT *: `description` alone is ~32KB across the
@@ -81,6 +88,13 @@ function queryJobs(params: URLSearchParams): JobRow[] {
                ORDER BY COALESCE(posted_at, first_seen_at) ${dir}, company ASC
                LIMIT 500`;
   return db.prepare(sql).all(...args) as unknown as JobRow[];
+}
+
+/** How many rows match the current filters, ignoring the display limit. */
+function countJobs(params: URLSearchParams): number {
+  const { where, args } = buildFilter(params);
+  const sql = `SELECT COUNT(*) AS n FROM jobs ${where.length ? `WHERE ${where.join(' AND ')}` : ''}`;
+  return (db.prepare(sql).get(...args) as { n: number }).n;
 }
 
 /**
@@ -231,8 +245,16 @@ const server = createServer(async (req, res) => {
     }
 
     if (url.pathname === '/api/jobs') {
+      const jobs = queryJobs(url.searchParams);
       res.writeHead(200, { 'content-type': 'application/json' });
-      res.end(JSON.stringify({ jobs: queryJobs(url.searchParams), facets: facets() }));
+      res.end(JSON.stringify({
+        jobs,
+        // How many rows match the current filters, which may exceed the 500 the list
+        // query returns. Counting the whole table instead made the header compare the
+        // visible rows against postings the filters had deliberately excluded.
+        matching: countJobs(url.searchParams),
+        facets: facets(),
+      }));
       return;
     }
 
