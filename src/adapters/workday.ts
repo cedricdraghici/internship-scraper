@@ -310,6 +310,10 @@ async function fetchBoards(boards: WorkdayBoard[], concurrency = 3): Promise<Raw
       } catch (err) {
         failures.push(`${board.name}: ${err instanceof Error ? err.message : String(err)}`);
       }
+      // Hand the event loop back between boards. This runs in the same process as the
+      // web server on a single shared CPU, and parsing ~4300 postings back-to-back
+      // otherwise leaves page requests queued behind it for minutes at a time.
+      await new Promise((r) => setImmediate(r));
     }
   }
 

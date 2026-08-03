@@ -68,7 +68,23 @@ function queryJobs(params: URLSearchParams): JobRow[] {
   return db.prepare(sql).all(...args) as unknown as JobRow[];
 }
 
-function facets() {
+/**
+ * Facet counts are the same for every visitor and change only when a scrape writes,
+ * but computing them runs five GROUP BY queries over the whole table. On a shared CPU
+ * that competes with the scrape running in this same process, so cache them briefly.
+ */
+let facetCache: { at: number; value: ReturnType<typeof computeFacets> } | null = null;
+const FACET_TTL_MS = 30_000;
+
+function facets(): ReturnType<typeof computeFacets> {
+  const now = Date.now();
+  if (facetCache && now - facetCache.at < FACET_TTL_MS) return facetCache.value;
+  const value = computeFacets();
+  facetCache = { at: now, value };
+  return value;
+}
+
+function computeFacets() {
   const col = (c: string) =>
     (db.prepare(`SELECT ${c} AS v, COUNT(*) AS n FROM jobs WHERE ${c} IS NOT NULL AND ${c} != ''
                  GROUP BY ${c} ORDER BY n DESC`).all() as unknown as Array<{ v: string; n: number }>);
@@ -219,6 +235,8 @@ const server = createServer(async (req, res) => {
         return;
       }
       setStatus(db, id, status as JobStatus);
+      // Marking a job changes the unreviewed count, so don't serve a stale one back.
+      facetCache = null;
       res.writeHead(200, { 'content-type': 'application/json' });
       res.end(JSON.stringify({ ok: true }));
       return;
