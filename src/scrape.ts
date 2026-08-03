@@ -18,16 +18,32 @@ import { workdayAdapter } from './adapters/workday.js';
 import { ashbyAdapter } from './adapters/ashby.js';
 import { simplifyAdapter } from './adapters/simplify.js';
 
-/** Sources that run by default, fastest first. */
-export function allAdapters(): Adapter[] {
+/**
+ * Sources cheap enough to poll often — the whole group finishes in ~10 seconds and
+ * supplies almost every posting (GitHub alone is 236 of 292).
+ */
+export function fastAdapters(): Adapter[] {
   return [
     githubAdapter(),
     simplifyAdapter(),
     greenhouseAdapter(),
     leverAdapter(),
     ashbyAdapter(),
-    workdayAdapter(),
   ];
+}
+
+/**
+ * Sources worth polling rarely. Workday takes ~106s uncached — 90% of a full run —
+ * because it searches 16 tenants for 7 terms apiece, and yields ~11 jobs. Employer
+ * boards also change far more slowly than the curated lists do.
+ */
+export function slowAdapters(): Adapter[] {
+  return [workdayAdapter()];
+}
+
+/** Sources that run by default, fastest first. */
+export function allAdapters(): Adapter[] {
+  return [...fastAdapters(), ...slowAdapters()];
 }
 
 /**

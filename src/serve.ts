@@ -3,35 +3,43 @@
  *
  * Locally you run `npm run scrape` and `npm run web` separately. On a host there's no
  * one to run the scrape, so this does both in one process — a cron container would
- * cost a second machine for a job that takes ~30 seconds a day.
+ * cost a second machine for a job that takes seconds.
  *
- *   JT_SCRAPE_INTERVAL_HOURS   how often to refresh (default 12, 0 disables)
- *   JT_SCRAPE_ON_BOOT          run one scrape at startup (default yes)
+ * Two schedules, because the sources differ by two orders of magnitude in cost:
+ *
+ *   JT_FAST_INTERVAL_MINUTES   GitHub/Simplify/Greenhouse/Lever/Ashby — ~10s per run,
+ *                              and the source of nearly every posting (default 5,
+ *                              matching GitHub's own 300s cache-control)
+ *   JT_SLOW_INTERVAL_MINUTES   Workday — ~106s per run for ~11 jobs (default 30)
+ *   JT_SCRAPE_ON_BOOT          run both once at startup (default yes)
  */
 
-import { allAdapters, runScrape } from './scrape.js';
+import { fastAdapters, slowAdapters, runScrape } from './scrape.js';
+import type { Adapter } from './types.js';
 
-const INTERVAL_HOURS = Number(process.env.JT_SCRAPE_INTERVAL_HOURS ?? 12);
+const FAST_MINUTES = Number(process.env.JT_FAST_INTERVAL_MINUTES ?? 5);
+const SLOW_MINUTES = Number(process.env.JT_SLOW_INTERVAL_MINUTES ?? 30);
 const SCRAPE_ON_BOOT = process.env.JT_SCRAPE_ON_BOOT !== '0';
 
-let scraping = false;
+/** Guards per group, so a slow Workday run never blocks a fast one. */
+const running = new Set<string>();
 
-async function scrapeSafely(): Promise<void> {
-  // A full run takes ~2 minutes (Workday dominates). Skip rather than stack, so a
-  // short interval can't pile up overlapping runs hammering the same APIs.
-  if (scraping) {
-    console.log('scrape already in progress — skipping this tick');
+async function scrapeSafely(label: string, adapters: Adapter[]): Promise<void> {
+  // Skip rather than stack: if a run is still going when the next tick fires,
+  // overlapping runs would hammer the same endpoints concurrently.
+  if (running.has(label)) {
+    console.log(`${label} scrape already in progress — skipping this tick`);
     return;
   }
-  scraping = true;
+  running.add(label);
   try {
-    await runScrape(allAdapters());
+    await runScrape(adapters);
   } catch (err) {
     // Never let a failed scrape take down the web server — a stale board still
     // beats no board.
-    console.error('scrape failed:', err instanceof Error ? err.message : String(err));
+    console.error(`${label} scrape failed:`, err instanceof Error ? err.message : String(err));
   } finally {
-    scraping = false;
+    running.delete(label);
   }
 }
 
@@ -39,12 +47,17 @@ async function scrapeSafely(): Promise<void> {
 // runs in the background rather than delaying startup past a health check.
 await import('./web/server.js');
 
-if (SCRAPE_ON_BOOT) void scrapeSafely();
+if (SCRAPE_ON_BOOT) {
+  void scrapeSafely('fast', fastAdapters());
+  void scrapeSafely('slow', slowAdapters());
+}
 
-if (INTERVAL_HOURS > 0) {
-  const ms = INTERVAL_HOURS * 60 * 60 * 1000;
-  setInterval(() => void scrapeSafely(), ms);
-  // Fractional values are allowed (0.25 = 15 min), so report minutes when under an hour.
-  const label = INTERVAL_HOURS < 1 ? `${Math.round(INTERVAL_HOURS * 60)}m` : `${INTERVAL_HOURS}h`;
-  console.log(`scheduler → scraping every ${label}`);
+if (FAST_MINUTES > 0) {
+  setInterval(() => void scrapeSafely('fast', fastAdapters()), FAST_MINUTES * 60_000);
+  console.log(`scheduler → fast sources every ${FAST_MINUTES}m`);
+}
+
+if (SLOW_MINUTES > 0) {
+  setInterval(() => void scrapeSafely('slow', slowAdapters()), SLOW_MINUTES * 60_000);
+  console.log(`scheduler → workday every ${SLOW_MINUTES}m`);
 }

@@ -11,9 +11,13 @@ primary_region = 'yyz'
 
 [env]
   JT_DATA_DIR = '/data'
-  # 10 minutes, matching the dashboard's own refresh so the page and the database
-  # move together. Fractional values are hours (0.1667 = 10m).
-  JT_SCRAPE_INTERVAL_HOURS = '0.1667'
+  # Fast sources (~10s per run) every 5 min — GitHub serves cache-control: max-age=300,
+  # so polling harder than this just re-reads identical bytes. Workday costs ~106s for
+  # ~11 jobs, so it runs on its own slower timer.
+  JT_FAST_INTERVAL_MINUTES = '5'
+  JT_SLOW_INTERVAL_MINUTES = '30'
+  # Response cache must stay under the fast interval or runs re-read stale copies.
+  JT_CACHE_MINUTES = '4'
   PORT = '8080'
 
 [[mounts]]

@@ -245,7 +245,7 @@ for (const id of controls) {
 // The scraper runs hourly, but the page only ever loaded once — leave the tab open and
 // it quietly goes stale. Refresh on a timer, and again whenever the tab regains focus
 // so coming back to it never shows yesterday's list.
-const REFRESH_MS = 10 * 60 * 1000;
+const REFRESH_MS = 5 * 60 * 1000;
 
 function refreshIfIdle() {
   // Don't yank the list out from under a search you're typing, and don't waste a

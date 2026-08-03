@@ -36,7 +36,11 @@ export async function fetchText(url: string, opts: FetchOptions = {}): Promise<s
   const { retries = 3, timeoutMs = 20_000, headers = {}, method, body, realUrl } = opts;
   const target = realUrl ?? url;
   // JT_NO_CACHE (set by `npm run scrape -- --no-cache`) forces a fresh fetch.
-  const maxAgeMs = process.env.JT_NO_CACHE ? 0 : opts.maxAgeMs ?? 30 * 60 * 1000;
+  // Default TTL tracks the scrape interval: a cache longer than the interval means
+  // most runs re-read stale responses and find nothing, which is what a 30-minute
+  // default did to a 10-minute schedule.
+  const defaultTtlMs = Number(process.env.JT_CACHE_MINUTES ?? 5) * 60_000;
+  const maxAgeMs = process.env.JT_NO_CACHE ? 0 : opts.maxAgeMs ?? defaultTtlMs;
 
   const cached = cachePath(url);
   if (maxAgeMs > 0 && existsSync(cached) && Date.now() - statSync(cached).mtimeMs < maxAgeMs) {
