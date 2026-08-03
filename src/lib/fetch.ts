@@ -44,8 +44,15 @@ export async function fetchText(url: string, opts: FetchOptions = {}): Promise<s
   }
 
   let lastErr: unknown;
+  /** Set from a 429's Retry-After, so the next wait is what the server asked for. */
+  let retryAfterMs = 0;
+
   for (let attempt = 0; attempt <= retries; attempt++) {
-    if (attempt > 0) await sleep(Math.min(1000 * 2 ** (attempt - 1), 8000));
+    if (attempt > 0) {
+      const backoff = Math.min(1000 * 2 ** (attempt - 1), 8000);
+      await sleep(Math.max(backoff, retryAfterMs));
+      retryAfterMs = 0;
+    }
     try {
       const ctrl = new AbortController();
       const timer = setTimeout(() => ctrl.abort(), timeoutMs);
@@ -59,6 +66,18 @@ export async function fetchText(url: string, opts: FetchOptions = {}): Promise<s
 
       // Back off and retry on rate limit / transient server errors.
       if (res.status === 429 || res.status >= 500) {
+        // Greenhouse and Workday both answer 429 with Retry-After; obeying it beats
+        // guessing, and a server that has to repeat itself is one that starts blocking.
+        const retryAfter = res.headers.get('retry-after');
+        if (retryAfter) {
+          const seconds = Number(retryAfter);
+          // The header is either a delay in seconds or an HTTP date.
+          const ms = Number.isFinite(seconds)
+            ? seconds * 1000
+            : Date.parse(retryAfter) - Date.now();
+          // Cap it: a server asking for an hour shouldn't stall the whole run.
+          if (ms > 0) retryAfterMs = Math.min(ms, 60_000);
+        }
         lastErr = new Error(`HTTP ${res.status} for ${target}`);
         continue;
       }

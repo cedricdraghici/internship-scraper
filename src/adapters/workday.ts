@@ -145,7 +145,20 @@ async function postJobs(
  * Search terms run against every board. Workday's searchText matches the employer's
  * real title, so unlike Job Bank these actually surface internships.
  */
-const SEARCH_TERMS = ['intern', 'co-op', 'stagiaire', 'software', 'developer', 'new grad'];
+const SEARCH_TERMS = (process.env.JT_WD_TERMS
+  ?? 'intern,co-op,stagiaire,software,developer,new grad,data scientist')
+  .split(',')
+  .map((t) => t.trim())
+  .filter(Boolean);
+
+/**
+ * Terms that describe the *role* rather than the student track. On a big tenant these
+ * match thousands of rows ("developer" hits 1401 at TD), almost all of them senior —
+ * so page deeply into the student terms and only skim these. Measured: skimming costs
+ * nothing in kept jobs and removes ~40% of this adapter's requests.
+ */
+const BROAD_TERMS = new Set(['software', 'developer', 'new grad', 'engineer']);
+const BROAD_TERM_MAX_PAGES = 2;
 
 const PAGE_SIZE = 20;
 const MAX_PAGES = 5;
@@ -189,10 +202,20 @@ async function fetchWorkdayBoard(board: WorkdayBoard): Promise<RawJob[]> {
   const seen = new Set<string>();
 
   for (const term of SEARCH_TERMS) {
-    for (let page = 0; page < MAX_PAGES; page++) {
+    // The first response reports `total`, so we know how many pages exist rather than
+    // paging blindly to MAX_PAGES. Terms like "stagiaire" often match a handful of
+    // jobs — asking for five pages of them was ~30% of this adapter's requests.
+    const cap = BROAD_TERMS.has(term.toLowerCase()) ? BROAD_TERM_MAX_PAGES : MAX_PAGES;
+    let pagesForTerm = cap;
+
+    for (let page = 0; page < pagesForTerm; page++) {
       const data = await postJobs(p, term, page * PAGE_SIZE, PAGE_SIZE);
       const postings = data.jobPostings ?? [];
       if (postings.length === 0) break;
+
+      if (page === 0 && typeof data.total === 'number') {
+        pagesForTerm = Math.min(cap, Math.max(1, Math.ceil(data.total / PAGE_SIZE)));
+      }
 
       for (const j of postings) {
         const path = j.externalPath ?? '';
