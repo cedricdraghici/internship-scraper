@@ -13,7 +13,11 @@ import { dirname, resolve } from 'node:path';
 import type { JobPosting, JobStatus } from '../types.js';
 import { normalizeTitle } from './roles.js';
 
-export const DB_PATH = resolve(process.cwd(), 'data/jobs.db');
+/**
+ * JT_DATA_DIR points this at a mounted volume when deployed, so the database (and
+ * with it every applied/interview mark) survives a redeploy. Unset locally.
+ */
+export const DB_PATH = resolve(process.env.JT_DATA_DIR ?? resolve(process.cwd(), 'data'), 'jobs.db');
 
 /** Strip qualifiers that differ between sources for the same underlying job. */
 function identityTitle(title: string): string {

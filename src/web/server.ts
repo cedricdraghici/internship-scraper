@@ -5,6 +5,7 @@
  */
 
 import { createServer } from 'node:http';
+import { timingSafeEqual } from 'node:crypto';
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
@@ -90,8 +91,39 @@ function facets() {
   };
 }
 
+/**
+ * Basic auth, enabled only when JT_PASSWORD is set.
+ *
+ * Locally the variable is unset and the dashboard stays open, exactly as before.
+ * On a public host it is set, and this is what keeps the board private — it holds
+ * personal application tracking, so it should never be world-readable.
+ */
+function authorized(req: { headers: Record<string, string | string[] | undefined> }): boolean {
+  const expected = process.env.JT_PASSWORD;
+  if (!expected) return true;
+
+  const header = req.headers.authorization;
+  if (typeof header !== 'string' || !header.startsWith('Basic ')) return false;
+  const decoded = Buffer.from(header.slice(6), 'base64').toString('utf8');
+  const supplied = decoded.slice(decoded.indexOf(':') + 1);
+
+  // Constant-time compare so the password can't be recovered by timing responses.
+  const a = Buffer.from(supplied);
+  const b = Buffer.from(expected);
+  return a.length === b.length && timingSafeEqual(a, b);
+}
+
 const server = createServer(async (req, res) => {
   const url = new URL(req.url ?? '/', `http://localhost:${PORT}`);
+
+  if (!authorized(req)) {
+    res.writeHead(401, {
+      'www-authenticate': 'Basic realm="Job Tracker", charset="UTF-8"',
+      'content-type': 'text/plain',
+    });
+    res.end('Authentication required');
+    return;
+  }
 
   try {
     if (url.pathname === '/') {
@@ -133,7 +165,10 @@ const server = createServer(async (req, res) => {
   }
 });
 
-server.listen(PORT, () => {
+// 0.0.0.0 so the process is reachable from outside its container when deployed;
+// locally this behaves the same as binding localhost.
+server.listen(PORT, '0.0.0.0', () => {
   const { total, fresh } = facets();
-  console.log(`job-tracker → http://localhost:${PORT}  (${total} jobs, ${fresh} unreviewed)`);
+  const lock = process.env.JT_PASSWORD ? ' [password protected]' : '';
+  console.log(`job-tracker → http://localhost:${PORT}  (${total} jobs, ${fresh} unreviewed)${lock}`);
 });

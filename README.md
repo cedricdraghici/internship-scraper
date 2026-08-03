@@ -19,6 +19,46 @@ Everything in the dashboard is an internship or co-op. The type dropdown narrows
 between the two, but employers label the same job either way, so the default
 (both) is usually what you want.
 
+## Deploying (Fly.io)
+
+Puts the dashboard on a private URL that's up 24/7 and scrapes itself twice a day.
+
+```bash
+brew install flyctl
+fly auth signup                      # or: fly auth login
+
+# Pick a unique app name — Fly names are global. Edit `app` in fly.toml to match.
+fly launch --no-deploy --copy-config
+
+fly volumes create jobtracker_data --size 1 --region yyz
+fly secrets set JT_PASSWORD='pick-a-long-password'
+fly deploy
+fly open
+```
+
+The browser will ask for a username (anything) and that password.
+
+**Why each piece matters**
+
+- **The volume** holds `jobs.db`. Without it, every redeploy would reset your
+  applied/interview marks along with the container.
+- **`JT_PASSWORD`** gates the whole app, API included. Set it — the board holds your
+  personal application tracking and would otherwise be world-readable. Locally the
+  variable is unset and the dashboard stays open.
+- **`min_machines_running = 1`** keeps the scrape timer alive. Scaling to zero would
+  suspend it between visits.
+
+`src/serve.ts` is the deployed entrypoint: it serves the dashboard and runs a scrape on
+boot, then every `JT_SCRAPE_INTERVAL_HOURS` (default 12). A failed scrape is logged and
+skipped — a stale board still beats no board.
+
+Seeding it with the jobs you already have locally is optional; a boot scrape refills an
+empty volume in about 15 seconds. To copy your statuses across anyway:
+
+```bash
+fly ssh sftp shell -C 'put data/jobs.db /data/jobs.db'
+```
+
 ## Commands
 
 | Command | What it does |

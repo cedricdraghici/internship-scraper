@@ -7,7 +7,7 @@ import { mkdirSync, readFileSync, writeFileSync, existsSync, statSync } from 'no
 import { resolve } from 'node:path';
 import { createHash } from 'node:crypto';
 
-const CACHE_DIR = resolve(process.cwd(), 'data/cache');
+const CACHE_DIR = resolve(process.env.JT_DATA_DIR ?? resolve(process.cwd(), 'data'), 'cache');
 const UA = 'job-tracker/0.1 (personal job search aggregator)';
 
 export interface FetchOptions {

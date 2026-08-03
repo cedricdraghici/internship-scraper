@@ -1,0 +1,8 @@
+# Keep the build context small and the image clean.
+node_modules
+# Local database and response cache — the deployed app uses its own volume, and the
+# cache alone is ~68MB of dead weight in an upload.
+data
+.git
+*.log
+.DS_Store

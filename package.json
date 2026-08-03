@@ -8,6 +8,7 @@
     "scrape": "tsx src/scrape.ts",
     "typecheck": "tsc --noEmit",
     "web": "tsx src/web/server.ts",
+    "serve": "tsx src/serve.ts",
     "check-board": "tsx src/check-board.ts"
   },
   "keywords": [],
