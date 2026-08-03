@@ -103,6 +103,7 @@ let facetsLoaded = false;
 // Mirrored from the last load so a status click can adjust the header count locally.
 let total = 0;
 let unreviewed = 0;
+let shown = 0;
 
 function params() {
   const p = new URLSearchParams();
@@ -115,7 +116,13 @@ function params() {
 }
 
 function renderCount() {
-  $('count').textContent = `${total} total · ${unreviewed} unreviewed`;
+  // Lead with what's on screen. The default view hides postings over 30 days old, so
+  // showing only the database totals made a filtered list look like the whole board.
+  const parts = [];
+  if (shown !== total) parts.push(`${shown} shown of ${total}`);
+  else parts.push(`${total} total`);
+  parts.push(`${unreviewed} unreviewed`);
+  $('count').textContent = parts.join(' · ');
 }
 
 function fillSelect(el, items, label = (v) => v) {
@@ -152,6 +159,7 @@ async function load() {
 
   total = facets.total;
   unreviewed = facets.fresh;
+  shown = jobs.length;
   renderCount();
 
   if (!facetsLoaded) {
