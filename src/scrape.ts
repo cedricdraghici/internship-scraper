@@ -54,12 +54,12 @@ export function allAdapters(): Adapter[] {
  * NOC occupation names, so no title ever says "intern". Kept working and reachable by
  * name in case that changes, but off the default path.
  */
-/** Postings older than this are deleted, not merely hidden. */
-const MAX_AGE_DAYS = Number(process.env.JT_MAX_AGE_DAYS ?? 30);
-
 export function optionalAdapters(): Adapter[] {
   return [jobBankAdapter()];
 }
+
+/** Postings older than this are deleted, not merely hidden. */
+const MAX_AGE_DAYS = Number(process.env.JT_MAX_AGE_DAYS ?? 30);
 
 export async function runScrape(adapters: Adapter[]): Promise<SourceResult[]> {
   const db = openDb();
@@ -69,7 +69,7 @@ export async function runScrape(adapters: Adapter[]): Promise<SourceResult[]> {
     const started = Date.now();
     try {
       const raw = await adapter.fetch();
-      const { keptJobs, droppedNotCanada, droppedNotRole, droppedNotStudent } = normalize(raw);
+      const { keptJobs, droppedNotCanada, droppedNotRole, droppedNotStudent, droppedStale } = normalize(raw);
       const { inserted, updated, newJobs } = upsertJobs(db, keptJobs);
       // Push before the next adapter runs, so an alert lands as soon as its posting does.
       await notifyNewJobs(newJobs);
@@ -88,7 +88,7 @@ export async function runScrape(adapters: Adapter[]): Promise<SourceResult[]> {
         `✓ ${adapter.name.padEnd(11)} fetched ${String(raw.length).padStart(5)}  ` +
         `kept ${String(keptJobs.length).padStart(4)}  new ${String(inserted).padStart(4)}  ` +
         `seen-again ${String(updated).padStart(4)}  ` +
-        `(dropped: ${droppedNotStudent} non-intern, ${droppedNotCanada} non-CA, ${droppedNotRole} off-role)  ${r.ms}ms`,
+        `(dropped: ${droppedNotStudent} non-intern, ${droppedStale} stale, ${droppedNotCanada} non-CA, ${droppedNotRole} off-role)  ${r.ms}ms`,
       );
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
@@ -102,7 +102,9 @@ export async function runScrape(adapters: Adapter[]): Promise<SourceResult[]> {
     }
   }
 
-  // Age out old listings once every adapter has had its chance to re-confirm them.
+  // Ages out rows that were already stored before normalize() started rejecting stale
+  // postings, and anything that crosses the cutoff while sitting in the table. New
+  // stale rows never reach here, so this is normally a no-op.
   const pruned = pruneStale(db, MAX_AGE_DAYS);
   if (pruned > 0) console.log(`  pruned ${pruned} postings older than ${MAX_AGE_DAYS} days`);
 

@@ -49,6 +49,22 @@ test('normalize: an adapter-supplied type outranks the title guess', () => {
   assert.equal(keptJobs[0]?.type, 'intern');
 });
 
+test('normalize: postings older than the cutoff never enter the database', () => {
+  const daysAgo = (n: number) => new Date(Date.now() - n * 86_400_000).toISOString();
+  const { keptJobs, droppedStale } = normalize([
+    raw({ title: 'Software Engineer Intern', postedAt: daysAgo(2), url: 'https://x/1' }),
+    raw({ title: 'Software Engineer Intern', postedAt: daysAgo(29), url: 'https://x/2', company: 'B' }),
+    raw({ title: 'Software Engineer Intern', postedAt: daysAgo(45), url: 'https://x/3', company: 'C' }),
+    raw({ title: 'Software Engineer Intern', postedAt: daysAgo(400), url: 'https://x/4', company: 'D' }),
+    // No date: kept, since a third of rows come from lists with no date column and
+    // rejecting them would discard current postings too.
+    raw({ title: 'Software Engineer Intern', postedAt: null, url: 'https://x/5', company: 'E' }),
+  ]);
+
+  assert.equal(droppedStale, 2);
+  assert.deepEqual(keptJobs.map((j) => j.company).sort(), ['Acme', 'B', 'E']);
+});
+
 test('normalize: non-Canadian internships are still dropped', () => {
   const { keptJobs, droppedNotCanada } = normalize([
     raw({ title: 'Software Engineer Intern', location: 'Austin, TX', url: 'https://x/6' }),
