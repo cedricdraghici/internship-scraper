@@ -9,8 +9,8 @@ notifications for new postings.
 Full-time, new-grad and contract roles are dropped at scrape time and never reach the
 database. Roughly 290 live postings at any time, from ~2,000 fetched per run.
 
-**[Deploy your own](#deploy-your-own-247-with-phone-alerts)** — one script, free tier,
-about five minutes. Or run it locally:
+**[Deploy your own](#deploy-your-own-247-with-phone-alerts)** — one script, about five
+minutes, roughly $4/month on Fly (see [Cost](#cost)). Or run it locally for free:
 
 ```bash
 npm install
@@ -29,8 +29,31 @@ between the two, but employers label the same job either way, so the default
 
 The result: a private URL that stays up whether or not your laptop is on, scrapes
 itself every 5 minutes, and pushes a notification to your phone when a new internship
-appears. Free tier throughout — Fly asks for a card but this fits inside the
-allowance, and ntfy needs no account at all.
+appears.
+
+#### Cost
+
+Fly removed its permanent free tier in 2024, so be clear-eyed about this. New accounts
+get trial credit, and this app's footprint — one always-on shared-cpu-1x/512MB machine
+plus a 1GB volume — runs roughly **$4/month** after the trial. Fly's stated policy is
+not to bill accounts under about $5/month, but treat that as a courtesy rather than a
+guarantee.
+
+**With no card on file, you cannot be charged**: when the trial credit runs out Fly
+suspends the app rather than billing you. The failure mode is your tracker going quiet,
+not a surprise invoice — so back up the database before that happens (see the bottom of
+this section), since the postings re-scrape in seconds but your applied/interview marks
+don't.
+
+Free alternatives, both with the same tradeoff — they only run while your machine is
+awake, so overnight postings are missed:
+
+- **Tailscale** (`tailscale serve 4000`) — private to your devices, no account needed
+  beyond Tailscale itself
+- **Just run it locally** — `npm run serve` gives you the same scheduler and dashboard
+  at `localhost:4000`; no notifications unless you set `JT_NTFY_TOPIC` yourself
+
+ntfy itself is free and needs no account, wherever you host.
 
 ### 1. Install the Fly CLI and sign in
 
