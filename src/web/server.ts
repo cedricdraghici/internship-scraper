@@ -4,7 +4,7 @@
  *   npm run web   ->  http://localhost:4000
  */
 
-import { createServer } from 'node:http';
+import { createServer, type IncomingMessage } from 'node:http';
 import { timingSafeEqual } from 'node:crypto';
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
@@ -92,6 +92,55 @@ function facets() {
 }
 
 /**
+ * Failed-login throttle.
+ *
+ * Basic auth has no lockout of its own, so without this an attacker can guess
+ * passwords as fast as the network allows. Only *failures* are counted — a valid
+ * session browses freely no matter how many requests it makes.
+ */
+const MAX_FAILURES = Number(process.env.JT_MAX_FAILURES ?? 10);
+const LOCKOUT_MS = Number(process.env.JT_LOCKOUT_MINUTES ?? 15) * 60_000;
+/** Cap on tracked IPs, so a spray across many addresses can't exhaust memory. */
+const MAX_TRACKED_IPS = 10_000;
+
+const failures = new Map<string, { count: number; until: number }>();
+
+/**
+ * The client's address, as reported by the Fly proxy.
+ *
+ * `fly-client-ip` is set by the proxy itself and cannot be spoofed by the caller;
+ * trusting `x-forwarded-for` instead would let anyone reset their own counter by
+ * forging a header. Falls back to the socket address when running locally.
+ */
+function clientIp(req: IncomingMessage): string {
+  const flyIp = req.headers['fly-client-ip'];
+  if (typeof flyIp === 'string' && flyIp) return flyIp;
+  return req.socket.remoteAddress ?? 'unknown';
+}
+
+/** Milliseconds remaining on a lockout, or 0 when the caller may try again. */
+function lockedFor(ip: string, now = Date.now()): number {
+  const entry = failures.get(ip);
+  if (!entry) return 0;
+  if (entry.until <= now) {
+    failures.delete(ip);
+    return 0;
+  }
+  return entry.count >= MAX_FAILURES ? entry.until - now : 0;
+}
+
+function recordFailure(ip: string, now = Date.now()): void {
+  // Opportunistically drop expired entries before growing the map.
+  if (failures.size >= MAX_TRACKED_IPS) {
+    for (const [key, entry] of failures) if (entry.until <= now) failures.delete(key);
+    if (failures.size >= MAX_TRACKED_IPS) return; // still full: stop tracking new IPs
+  }
+  const entry = failures.get(ip);
+  // The window slides: each failure pushes the unlock time back out.
+  failures.set(ip, { count: (entry?.count ?? 0) + 1, until: now + LOCKOUT_MS });
+}
+
+/**
  * Basic auth, enabled only when JT_PASSWORD is set.
  *
  * Locally the variable is unset and the dashboard stays open, exactly as before.
@@ -116,13 +165,31 @@ function authorized(req: { headers: Record<string, string | string[] | undefined
 const server = createServer(async (req, res) => {
   const url = new URL(req.url ?? '/', `http://localhost:${PORT}`);
 
-  if (!authorized(req)) {
-    res.writeHead(401, {
-      'www-authenticate': 'Basic realm="Job Tracker", charset="UTF-8"',
-      'content-type': 'text/plain',
-    });
-    res.end('Authentication required');
-    return;
+  if (process.env.JT_PASSWORD) {
+    const ip = clientIp(req);
+    const ok = authorized(req);
+
+    if (ok) {
+      // Check the password before the lockout, so this is one user's own board and a
+      // burst of typos can't shut them out of it. An attacker gains nothing: being
+      // let through already required the right password.
+      failures.delete(ip);
+    } else {
+      const waitMs = lockedFor(ip);
+      if (waitMs > 0) {
+        const seconds = Math.ceil(waitMs / 1000);
+        res.writeHead(429, { 'retry-after': String(seconds), 'content-type': 'text/plain' });
+        res.end(`Too many failed attempts. Try again in ${Math.ceil(seconds / 60)} minute(s).`);
+        return;
+      }
+      recordFailure(ip);
+      res.writeHead(401, {
+        'www-authenticate': 'Basic realm="Job Tracker", charset="UTF-8"',
+        'content-type': 'text/plain',
+      });
+      res.end('Authentication required');
+      return;
+    }
   }
 
   try {
