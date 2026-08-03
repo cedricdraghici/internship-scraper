@@ -104,7 +104,7 @@ export function dateCellToIso(cell: string, now = new Date()): string | null {
     ?? s.match(/^(\d{1,2})\s+([A-Za-z]{3,9})\.?,?\s+(\d{4})$/);
   if (named) {
     const dayFirst = /^\d/.test(s);
-    const monthName = (dayFirst ? named[2] : named[1] ?? '').slice(0, 3).toLowerCase();
+    const monthName = ((dayFirst ? named[2] : named[1]) ?? '').slice(0, 3).toLowerCase();
     const day = Number(dayFirst ? named[1] : named[2]);
     const month = MONTHS.indexOf(monthName);
     if (month >= 0) return isoFrom(Number(named[3]), month, day, now);
