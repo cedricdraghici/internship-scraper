@@ -10,7 +10,7 @@ RUN npm ci
 COPY tsconfig.json ./
 COPY src ./src
 
-# The Fly volume mounts here — jobs.db and the response cache live on it, so your
+# The Fly volume mounts here, jobs.db and the response cache live on it, so your
 # status tracking survives redeploys.
 ENV JT_DATA_DIR=/data
 ENV PORT=8080

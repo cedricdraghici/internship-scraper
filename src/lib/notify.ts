@@ -3,7 +3,7 @@
  *
  * ntfy needs no account and no phone number: you subscribe the app to a topic name,
  * and anything POSTed to that topic arrives as a push notification. The topic name IS
- * the credential — anyone who knows it can read your alerts — so JT_NTFY_TOPIC should
+ * the credential, anyone who knows it can read your alerts, so JT_NTFY_TOPIC should
  * be long and random, and it lives in fly secrets rather than in this repo.
  *
  * Disabled when JT_NTFY_TOPIC is unset, which is the default locally.
@@ -22,7 +22,7 @@ function summarise(job: JobPosting): string {
 }
 
 /**
- * Announce newly-inserted postings. Never throws — a failed notification must not
+ * Announce newly-inserted postings. Never throws, a failed notification must not
  * fail the scrape that produced it.
  */
 export async function notifyNewJobs(jobs: JobPosting[]): Promise<void> {

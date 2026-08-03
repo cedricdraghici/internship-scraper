@@ -9,7 +9,7 @@ import type { JobType, RoleCategory } from '../types.js';
 
 /**
  * Titles that contain a match keyword but are not the job I want.
- * Checked first — an exclusion always wins.
+ * Checked first, an exclusion always wins.
  */
 const EXCLUSIONS: Array<[RegExp, string]> = [
   [/\b(sales|solutions?|customer|field|support|partner|forward.deployed)\s+engineer/, 'non-eng-engineer'],
@@ -24,7 +24,7 @@ const EXCLUSIONS: Array<[RegExp, string]> = [
   [/\b(program|project|product)\s+manager\b/, 'management'],
 ];
 
-/** [pattern, category, ruleName] — first match wins, so order most-specific first. */
+/** [pattern, category, ruleName], first match wins, so order most-specific first. */
 const INCLUSIONS: Array<[RegExp, RoleCategory, string]> = [
   // AI / ML
   [/\b(ai|artificial intelligence)\s+(engineer|developer|dev)\b/, 'ai-ml', 'ai-engineer'],
@@ -57,7 +57,7 @@ const INCLUSIONS: Array<[RegExp, RoleCategory, string]> = [
   // Intern shorthand: internship titles routinely drop the "engineer"/"developer"
   // head word ("Machine Learning Intern", "Backend Intern", "Engineering Co-op"),
   // so the rules above never fire on them. Only trust these when the title actually
-  // says intern/co-op — bare "Data Science" or "Security" is not a role we want.
+  // says intern/co-op, bare "Data Science" or "Security" is not a role we want.
   //
   // `intern` here is deliberately \bintern\b(ship)? and never a bare prefix: "Internal
   // Audit Manager" and "Internal Sales" would otherwise match, and banks post many of
@@ -69,7 +69,7 @@ const INCLUSIONS: Array<[RegExp, RoleCategory, string]> = [
   // Reverse order: "Intern - Software Engineering", "Co-op, Backend".
   [/\b(intern(ship)?|co.?op)\b.*\b(software|engineering|developer|development|back.?end|front.?end|full.?stack|web|mobile|devops|machine learning|data scien(ce|tist))\b/, 'swe', 'intern-prefix-shorthand'],
 
-  // French titles — common in Quebec postings.
+  // French titles, common in Quebec postings.
   [/\bing(é|e)nieur\s+(logiciel|en logiciel|d(é|e)veloppement)/, 'swe', 'fr-ingenieur-logiciel'],
   [/\bd(é|e)veloppeur(\.?se)?\b/, 'swe', 'fr-developpeur'],
   [/\bg(é|e)nie logiciel\b/, 'swe', 'fr-genie-logiciel'],
@@ -81,7 +81,7 @@ const INCLUSIONS: Array<[RegExp, RoleCategory, string]> = [
 
 // French variants matter: Quebec postings are frequently listed in French
 // ("Stagiaire DevOps - Automne 2026" is an internship, not a full-time role).
-// Note: co-op patterns deliberately live in COOP only, not here — INTERN is tested
+// Note: co-op patterns deliberately live in COOP only, not here, INTERN is tested
 // first, so repeating them would make `co-op` unreachable.
 const INTERN = /\bintern(ship)?s?\b|\bsummer\s+20\d\d\b|\b(fall|winter|spring|summer)\s+(term|20\d\d)\b|\bstudent\b|\bplacement\b|\bstagiaire\b|\bstages?\b|\b(é|e)tudiant(e)?\b|\bapprenti(ce|ceship)?\b|\bundergrad(uate)?\b|\bwork\s+term\b/;
 const COOP = /\bco.?op\b|\balternance\b/;
@@ -108,7 +108,7 @@ export function normalizeTitle(title: string): string {
 
 export function classifyType(title: string): JobType | null {
   const t = normalizeTitle(title);
-  // "Intern" wins over "Co-op": titles like "Software Engineering Intern —
+  // "Intern" wins over "Co-op": titles like "Software Engineering Intern -
   // Fall-Spring Co-op" contain both, and calling those `co-op` split the real
   // internships across two filter values. Co-op only fires when nothing says intern.
   if (INTERN.test(t)) return 'intern';
@@ -118,7 +118,7 @@ export function classifyType(title: string): JobType | null {
   return 'full-time';
 }
 
-/** True for the student-track types — what the `--interns-only` scrape keeps. */
+/** True for the student-track types, what the `--interns-only` scrape keeps. */
 export function isStudentType(type: JobType | null): boolean {
   return type === 'intern' || type === 'co-op';
 }

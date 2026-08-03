@@ -5,7 +5,7 @@
  *   | <a href="..."><strong>Company</strong></a> | Role | Toronto, Canada +1 | <a href="apply"><img/></a> | 59d |
  *
  * Notes on the format:
- *  - The age column is relative ("59d", "2mo"), not a date — converted to an approximate
+ *  - The age column is relative ("59d", "2mo"), not a date, converted to an approximate
  *    ISO timestamp so sorting works.
  *  - "+1" after a location means additional locations the table doesn't list.
  *  - A leading "↳" in the company cell means "same company as the row above".
@@ -17,7 +17,7 @@ import { fetchText } from '../lib/fetch.js';
 /**
  * Curated job-list repos. These are the single best internship source in this project:
  * they are maintained by students for students, so every row is already a real intern
- * posting with a company, a location and a link — no employment-type guesswork.
+ * posting with a company, a location and a link, no employment-type guesswork.
  *
  * The Canada-specific lists matter most; the international ones are mostly US rows that
  * the Canada filter discards, but they do carry Canadian offices of large employers.
@@ -37,7 +37,7 @@ export const GITHUB_SOURCES = [
   'https://raw.githubusercontent.com/vanshb03/Summer2026-Internships/main/README.md',
   // Note: the SimplifyJobs repos are NOT listed here. They stopped rendering a
   // markdown table, so this parser found nothing in them; they're read from their
-  // published listings.json instead — see adapters/simplify.ts.
+  // published listings.json instead, see adapters/simplify.ts.
 ];
 
 /** Strip HTML tags/entities from a markdown table cell. */
@@ -74,7 +74,7 @@ function cellUrl(cell: string): string | null {
  *
  * These repos use two conventions: a relative age ("5d", "2mo") or an absolute date
  * ("Jul 31, 2026", "2026-07-31"). Only handling the relative form left 173 of 282 rows
- * with no posted_at, which made "newest first" meaningless — they all fell back to the
+ * with no posted_at, which made "newest first" meaningless, they all fell back to the
  * scrape timestamp and tied for first place.
  */
 export function dateCellToIso(cell: string, now = new Date()): string | null {

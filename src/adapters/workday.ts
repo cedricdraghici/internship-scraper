@@ -2,7 +2,7 @@
  * Workday adapter.
  *
  * Workday powers the careers site of most large Canadian employers (banks, telecoms,
- * enterprises) — the segment Greenhouse/Lever barely cover. Every tenant exposes the
+ * enterprises), the segment Greenhouse/Lever barely cover. Every tenant exposes the
  * same undocumented-but-public JSON endpoint that the careers SPA itself calls:
  *
  *   POST https://<host>.<dc>.myworkdayjobs.com/wday/cxs/<tenant>/<site>/jobs
@@ -11,7 +11,7 @@
  * No auth, no HTML parsing. The response gives title, locationsText, externalPath and
  * a relative postedOn ("Posted 11 Days Ago").
  *
- * The (host, dc, tenant, site) tuple is NOT guessable — `rbc`/`telus`/`cgi` all 404 or
+ * The (host, dc, tenant, site) tuple is NOT guessable, `rbc`/`telus`/`cgi` all 404 or
  * 422, and Loblaw lives under host `myview`, not `loblaw`. So boards are configured by
  * pasting a real careers URL, which `parseWorkdayUrl` decomposes. Verify a new one with
  * `npm run check-board -- <url>`.
@@ -45,7 +45,7 @@ export const WORKDAY_BOARDS: WorkdayBoard[] = [
   { url: 'https://myview.wd3.myworkdayjobs.com/en-US/loblaw_careers', name: 'Loblaw' },
   { url: 'https://workday.wd5.myworkdayjobs.com/en-US/Workday', name: 'Workday' },
   { url: 'https://mlse.wd3.myworkdayjobs.com/en-US/MLSE', name: 'MLSE' },
-  // RBC's early-talent site is student recruiting specifically — a better bet than a
+  // RBC's early-talent site is student recruiting specifically, a better bet than a
   // general careers board, where interns are a rounding error.
   { url: 'https://rbc.wd3.myworkdayjobs.com/en-US/RBCEARLYTALENT1', name: 'RBC (Early Talent)' },
   { url: 'https://ciena.wd5.myworkdayjobs.com/en-US/Careers', name: 'Ciena' },
@@ -153,7 +153,7 @@ const SEARCH_TERMS = (process.env.JT_WD_TERMS
 
 /**
  * Terms that describe the *role* rather than the student track. On a big tenant these
- * match thousands of rows ("developer" hits 1401 at TD), almost all of them senior —
+ * match thousands of rows ("developer" hits 1401 at TD), almost all of them senior -
  * so page deeply into the student terms and only skim these. Measured: skimming costs
  * nothing in kept jobs and removes ~40% of this adapter's requests.
  */
@@ -204,7 +204,7 @@ async function fetchWorkdayBoard(board: WorkdayBoard): Promise<RawJob[]> {
   for (const term of SEARCH_TERMS) {
     // The first response reports `total`, so we know how many pages exist rather than
     // paging blindly to MAX_PAGES. Terms like "stagiaire" often match a handful of
-    // jobs — asking for five pages of them was ~30% of this adapter's requests.
+    // jobs, asking for five pages of them was ~30% of this adapter's requests.
     const cap = BROAD_TERMS.has(term.toLowerCase()) ? BROAD_TERM_MAX_PAGES : MAX_PAGES;
     let pagesForTerm = cap;
 
@@ -246,7 +246,7 @@ async function fetchWorkdayBoard(board: WorkdayBoard): Promise<RawJob[]> {
   }
 
   // Second pass: resolve "N Locations" placeholders to real place names. Only for
-  // postings that already pass the role filter — the lookup costs one request each,
+  // postings that already pass the role filter, the lookup costs one request each,
   // and a location we can't read is worthless on a job we don't want anyway.
   let lookups = 0;
   for (const job of out) {

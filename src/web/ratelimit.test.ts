@@ -30,7 +30,7 @@ test('auth: failed logins are throttled, valid ones are not', async (t) => {
   // Over the limit: further guesses are refused without checking the password.
   assert.equal(await get('wrong'), 429);
 
-  // The real password still gets in — a single-user board must not lock out its owner.
+  // The real password still gets in, a single-user board must not lock out its owner.
   assert.equal(await get(PASSWORD), 200);
   // ...and that success clears the counter.
   assert.equal(await get('wrong'), 401);

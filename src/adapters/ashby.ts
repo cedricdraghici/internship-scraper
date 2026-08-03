@@ -30,7 +30,7 @@ export const ASHBY_BOARDS: AshbyBoard[] = [
   { token: 'ramp', name: 'Ramp' },
   { token: 'notion', name: 'Notion' },
   { token: 'linear', name: 'Linear' },
-  // Canadian boards, verified live. Several carry no internships in the off-season —
+  // Canadian boards, verified live. Several carry no internships in the off-season -
   // they're here to be picked up when campus postings open in the fall.
   { token: 'benevity', name: 'Benevity' },
   { token: 'hopper', name: 'Hopper' },

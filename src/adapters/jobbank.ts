@@ -1,5 +1,5 @@
 /**
- * Job Bank Canada (jobbank.gc.ca) — Government of Canada job board.
+ * Job Bank Canada (jobbank.gc.ca), Government of Canada job board.
  *
  * No public API or RSS feed exists (the documented /jobsearch-rss path 404s), so this
  * parses the public search-results HTML. robots.txt allows this with `Crawl-delay: 5`,
@@ -28,7 +28,7 @@ export const JOBBANK_QUERIES = [
  * Job Bank is a weak internship source and intentionally has no intern queries.
  *
  * Its listings are titled with normalized NOC occupation names ("software developer"),
- * not the employer's own title, so the word "intern"/"stagiaire" never reaches us —
+ * not the employer's own title, so the word "intern"/"stagiaire" never reaches us -
  * searching for it returns the same senior postings (and, for the French terms,
  * unrelated trades). Employment type lives only on each posting's detail page, which
  * at `Crawl-delay: 5` costs one request per job to read.

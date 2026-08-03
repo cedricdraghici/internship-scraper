@@ -19,7 +19,7 @@ import { ashbyAdapter } from './adapters/ashby.js';
 import { simplifyAdapter } from './adapters/simplify.js';
 
 /**
- * Sources cheap enough to poll often — the whole group finishes in ~10 seconds and
+ * Sources cheap enough to poll often, the whole group finishes in ~10 seconds and
  * supplies almost every posting (GitHub alone is 236 of 292).
  */
 export function fastAdapters(): Adapter[] {
@@ -33,7 +33,7 @@ export function fastAdapters(): Adapter[] {
 }
 
 /**
- * Sources worth polling rarely. Workday takes ~106s uncached — 90% of a full run —
+ * Sources worth polling rarely. Workday takes ~106s uncached, 90% of a full run -
  * because it searches 16 tenants for 7 terms apiece, and yields ~11 jobs. Employer
  * boards also change far more slowly than the curated lists do.
  */
@@ -47,7 +47,7 @@ export function allAdapters(): Adapter[] {
 }
 
 /**
- * Opt-in sources — `npm run scrape -- jobbank`.
+ * Opt-in sources, `npm run scrape -- jobbank`.
  *
  * Job Bank costs ~100s per run (robots.txt `Crawl-delay: 5` × 15 requests) and, since
  * the tracker went internships-only, contributes nothing: its listings are titled with
@@ -103,7 +103,7 @@ export async function runScrape(adapters: Adapter[]): Promise<SourceResult[]> {
   const fresh = db.prepare("SELECT COUNT(*) AS n FROM jobs WHERE status = 'new'").get() as { n: number };
   const okCount = results.filter((r) => r.ok).length;
   console.log(
-    `\n${okCount}/${results.length} sources ok — ${total.n} jobs in db, ${fresh.n} unreviewed`,
+    `\n${okCount}/${results.length} sources ok, ${total.n} jobs in db, ${fresh.n} unreviewed`,
   );
   db.close();
   return results;

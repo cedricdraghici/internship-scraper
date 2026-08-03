@@ -1,6 +1,6 @@
 # Fly.io configuration. See https://fly.io/docs/reference/configuration/
 #
-# `./setup.sh` rewrites `app` and `primary_region` for you — Fly app names are global,
+# `./setup.sh` rewrites `app` and `primary_region` for you, Fly app names are global,
 # so a fork cannot reuse someone else's. Edit them by hand only if you skip the script.
 
 app = 'cedric-job-tracker'
@@ -11,7 +11,7 @@ primary_region = 'yyz'
 
 [env]
   JT_DATA_DIR = '/data'
-  # Fast sources (~10s per run) every 5 min — GitHub serves cache-control: max-age=300,
+  # Fast sources (~10s per run) every 5 min, GitHub serves cache-control: max-age=300,
   # so polling harder than this just re-reads identical bytes. Workday costs ~106s for
   # ~11 jobs, so it runs on its own slower timer.
   JT_FAST_INTERVAL_MINUTES = '5'

@@ -1,7 +1,7 @@
 /**
  * SimplifyJobs adapter (structured JSON, not markdown).
  *
- * These repos stopped rendering their README as a markdown table — the table is now
+ * These repos stopped rendering their README as a markdown table, the table is now
  * generated from a JSON file that the repo publishes directly:
  *
  *   .github/scripts/listings.json
@@ -51,7 +51,7 @@ export function parseSimplifyListings(listings: SimplifyListing[]): RawJob[] {
   const jobs: RawJob[] = [];
 
   for (const l of listings) {
-    // `active: false` means the posting closed — the repo keeps the row for history.
+    // `active: false` means the posting closed, the repo keeps the row for history.
     if (l.active === false || l.is_visible === false) continue;
     const title = (l.title ?? '').trim();
     const company = (l.company_name ?? '').trim();

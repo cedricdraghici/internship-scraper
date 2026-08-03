@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 #
 # One-shot deploy: creates the Fly app, its volume, and its secrets, then ships it.
-# Safe to re-run — every step checks whether it has already been done.
+# Safe to re-run, every step checks whether it has already been done.
 #
 #   ./setup.sh                 # prompts for an app name
 #   ./setup.sh my-job-tracker  # or pass one
@@ -52,7 +52,7 @@ else
   sed -i "s/^primary_region = .*/primary_region = '$REGION'/" fly.toml
 fi
 
-# 2. The volume. Without it, every redeploy wipes the database — and with it the
+# 2. The volume. Without it, every redeploy wipes the database, and with it the
 #    applied/interview marks, which are the only data that cannot be re-scraped.
 if fly volumes list --app "$APP" 2>/dev/null | grep -q jobtracker_data; then
   echo "==> Volume already exists."
@@ -94,7 +94,7 @@ cat <<EOF
 
       $PASSWORD
 
-  Phone alerts — install ntfy (App Store / Play Store),
+  Phone alerts, install ntfy (App Store / Play Store),
   tap +, and subscribe to this topic:
 
       $TOPIC

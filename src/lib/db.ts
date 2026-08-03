@@ -90,13 +90,13 @@ export function openDb(path = DB_PATH): DatabaseSync {
 export interface UpsertResult {
   inserted: number;
   updated: number;
-  /** The rows that were genuinely new this run — what notifications announce. */
+  /** The rows that were genuinely new this run, what notifications announce. */
   newJobs: JobPosting[];
 }
 
 /**
  * Insert new postings; for ones already known, refresh last_seen and merge the source
- * list. Never overwrites `status` or `notes` — that is the user's own tracking data.
+ * list. Never overwrites `status` or `notes`, that is the user's own tracking data.
  */
 export function upsertJobs(db: DatabaseSync, jobs: JobPosting[]): UpsertResult {
   const existing = db.prepare('SELECT id, sources FROM jobs WHERE id = ?');

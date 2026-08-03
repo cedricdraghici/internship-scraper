@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Job Tracker — Internships, Canada</title>
+<title>Job Tracker, Internships, Canada</title>
 <style>
   :root {
     --bg: #0f1115; --panel: #171a21; --panel-2: #1d212a; --line: #272c37;
@@ -172,7 +172,7 @@ async function load() {
         <h2><a href="${esc(j.url)}" target="_blank" rel="noopener">${esc(j.title)}</a></h2>
         <div class="meta">
           <strong style="color:var(--fg)">${esc(j.company)}</strong>
-          <span>·</span><span>${esc(j.location) || '—'}</span>
+          <span>·</span><span>${esc(j.location) || '-'}</span>
           ${j.salary_raw ? `<span>·</span><span>${esc(j.salary_raw)}</span>` : ''}
           <span>·</span><span title="${esc(j.posted_at || j.first_seen_at)}">${ago(j.posted_at || j.first_seen_at)}</span>
           <span>·</span><span>${sources.map(esc).join(' + ')}</span>
@@ -199,7 +199,7 @@ $('list').addEventListener('click', async (e) => {
   const status = btn.dataset.status;
 
   // Repaint immediately rather than waiting on the round-trip, and move only this
-  // row's buttons — the old code re-fetched and re-rendered all ~290 jobs, which is
+  // row's buttons, the old code re-fetched and re-rendered all ~290 jobs, which is
   // what made a click feel sticky.
   const previous = actions.querySelector('button.st.on');
   if (previous === btn) return;
@@ -242,7 +242,7 @@ for (const id of controls) {
   });
 }
 
-// The scraper runs hourly, but the page only ever loaded once — leave the tab open and
+// The scraper runs hourly, but the page only ever loaded once, leave the tab open and
 // it quietly goes stale. Refresh on a timer, and again whenever the tab regains focus
 // so coming back to it never shows yesterday's list.
 const REFRESH_MS = 5 * 60 * 1000;

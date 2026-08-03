@@ -129,7 +129,7 @@ test('roles: intern shorthand titles (no engineer/developer head word)', () => {
     assert.equal(matchRole(t).matches, false, `should exclude: ${t}`);
   }
 
-  // Real bank/insurer titles. "Internal"/"International" must never read as "intern" —
+  // Real bank/insurer titles. "Internal"/"International" must never read as "intern" -
   // these dominate Workday results and would otherwise flood the intern filter.
   for (const t of [
     'Sr. Audit Manager, Internal Audit Quality Control',
@@ -158,7 +158,7 @@ test('roles: software-development noun form (Workday postings)', () => {
 });
 
 test('roles: French titles (Quebec postings)', () => {
-  // Real title seen in live data — "stagiaire" is an intern, not full-time.
+  // Real title seen in live data, "stagiaire" is an intern, not full-time.
   assert.equal(classifyType('Stagiaire DevOps - Automne 2026'), 'intern');
   assert.equal(matchRole('Stagiaire DevOps - Automne 2026').category, 'devops');
   assert.equal(matchRole('Développeur logiciel').matches, true);

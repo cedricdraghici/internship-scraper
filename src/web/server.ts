@@ -1,5 +1,5 @@
 /**
- * Local dashboard. Reads only from SQLite — never live-scrapes (CLAUDE.md).
+ * Local dashboard. Reads only from SQLite, never live-scrapes (CLAUDE.md).
  *
  *   npm run web   ->  http://localhost:4000
  */
@@ -58,7 +58,7 @@ function queryJobs(params: URLSearchParams): JobRow[] {
   if (params.get('remote') === '1') where.push('remote = 1');
   if (params.get('confirmed') === '1') where.push("canada_confidence = 'confirmed'");
   // Sort by real posting date. Postings with no date sort last in both directions
-  // rather than inheriting the scrape timestamp — ~a third of rows come from repos
+  // rather than inheriting the scrape timestamp, ~a third of rows come from repos
   // with no date column, and letting them borrow "today" pushed them above genuinely
   // recent postings and made "newest" useless.
   const dir = params.get('sort') === 'oldest' ? 'ASC' : 'DESC';
@@ -77,7 +77,7 @@ function facets() {
     sources: col('source'),
     provinces: col('province'),
     categories: col('role_category'),
-    // Only intern and co-op exist in the db — the scrape drops everything else — so
+    // Only intern and co-op exist in the db, the scrape drops everything else, so
     // this is a sub-filter between the two, not a way to reach other job types.
     types: col('type'),
     statuses: col('status'),
@@ -95,7 +95,7 @@ function facets() {
  * Failed-login throttle.
  *
  * Basic auth has no lockout of its own, so without this an attacker can guess
- * passwords as fast as the network allows. Only *failures* are counted — a valid
+ * passwords as fast as the network allows. Only *failures* are counted, a valid
  * session browses freely no matter how many requests it makes.
  */
 const MAX_FAILURES = Number(process.env.JT_MAX_FAILURES ?? 10);
@@ -144,7 +144,7 @@ function recordFailure(ip: string, now = Date.now()): void {
  * Basic auth, enabled only when JT_PASSWORD is set.
  *
  * Locally the variable is unset and the dashboard stays open, exactly as before.
- * On a public host it is set, and this is what keeps the board private — it holds
+ * On a public host it is set, and this is what keeps the board private, it holds
  * personal application tracking, so it should never be world-readable.
  */
 function authorized(req: { headers: Record<string, string | string[] | undefined> }): boolean {

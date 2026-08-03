@@ -25,16 +25,16 @@ the UI only ever reads from the database, never live-scrapes.
 
 ## Sources to cover
 
-**ATS / job board APIs** (structured, reliable — do these first)
-- Greenhouse — public job board API per company (`boards-api.greenhouse.io`)
-- Lever, Ashby, Workday, SmartRecruiters, Recruitee — same pattern, worth adding
+**ATS / job board APIs** (structured, reliable, do these first)
+- Greenhouse, public job board API per company (`boards-api.greenhouse.io`)
+- Lever, Ashby, Workday, SmartRecruiters, Recruitee, same pattern, worth adding
 - Maintain a list of Canadian-relevant companies to poll
 
-**Aggregators** (harder, often anti-bot — treat as best-effort)
+**Aggregators** (harder, often anti-bot, treat as best-effort)
 - LinkedIn Jobs
 - Indeed (Canada)
 - Glassdoor
-- Job Bank Canada (`jobbank.gc.ca`) — government, has a public feed, very Canada-relevant
+- Job Bank Canada (`jobbank.gc.ca`), government, has a public feed, very Canada-relevant
 
 **GitHub repo listings** (markdown tables, easy to parse, high signal)
 - https://github.com/speedyapply/2027-SWE-College-Jobs/blob/main/INTERN_INTL.md
@@ -47,26 +47,26 @@ Three filters decide whether a posting is kept: **is it an internship**, **is it
 Canada** (below), and **is it a role I want** (here). All three must pass.
 
 **Internships and co-ops only.** Full-time, new-grad and contract roles are dropped at
-scrape time and never enter the database — this is a tracker for student positions, not
+scrape time and never enter the database, this is a tracker for student positions, not
 a general job board. Intern and co-op mean the same thing here; employers just word
 them differently.
 
 Titles to match:
 - Software Developer / Software Engineer (and SDE, SWE)
-- Developer — generically, including front-end, back-end, full-stack, mobile, web
-- DevOps — plus the adjacent titles that mean the same job: SRE, Site Reliability,
+- Developer, generically, including front-end, back-end, full-stack, mobile, web
+- DevOps, plus the adjacent titles that mean the same job: SRE, Site Reliability,
   Platform Engineer, Infrastructure Engineer, Cloud Engineer
-- AI Engineer / AI Developer — plus ML Engineer, Machine Learning Engineer,
+- AI Engineer / AI Developer, plus ML Engineer, Machine Learning Engineer,
   Applied Scientist when the role is engineering rather than pure research
 
 Match on normalized titles (lowercase, strip punctuation) and allow seniority and
-qualifier words around the core term — "Senior Software Engineer, Backend",
+qualifier words around the core term, "Senior Software Engineer, Backend",
 "Software Engineer Intern (Summer 2027)", and "Software Developer Co-op" all match.
 
 Watch the false positives: "Sales Engineer", "Solutions Engineer", "Customer Engineer",
 "Hardware Engineer", "Software Engineering Manager", and recruiter-spam listings are not
 what I'm after. Keep an explicit exclusion list next to the match list, and prefer
-flagging borderline titles over silently dropping them — the same principle as the
+flagging borderline titles over silently dropping them, the same principle as the
 Canada filter.
 
 Record on each posting **why** it matched (which rule fired) so the filter can be tuned
@@ -76,17 +76,17 @@ by looking at real results instead of guessing.
 
 Every adapter outputs this, whatever the source looks like:
 
-- `id` — stable hash used for dedupe
+- `id`, stable hash used for dedupe
 - `title`, `company`, `location` (+ parsed province, `remote` flag)
 - `url` (canonical application link), `source`, `posted_at`, `first_seen_at`
 - `salary` (raw + parsed range/currency when available)
-- `type` — intern / co-op (the other values exist in the classifier, but anything that
+- `type`, intern / co-op (the other values exist in the classifier, but anything that
   isn't one of these two is filtered out before storage)
-- `role_category` — swe / devops / ai-ml, derived from the title match rules
-- `matched_by` — which title rule fired, for tuning the filter
+- `role_category`, swe / devops / ai-ml, derived from the title match rules
+- `matched_by`, which title rule fired, for tuning the filter
 - `sponsorship` / `citizenship` notes when the source states them
 - `description` (raw text for keyword search)
-- `status` — my own tracking: new / applied / interview / rejected / offer
+- `status`, my own tracking: new / applied / interview / rejected / offer
 
 ## Canada filtering
 
@@ -110,14 +110,14 @@ flag it rather than silently dropping it.
 
 - Prefer official/public APIs and RSS over HTML scraping wherever one exists
 - Respect `robots.txt` and rate limits; back off on errors, cache aggressively
-- Expect aggregator scrapers to break — isolate failures so one dead adapter doesn't
+- Expect aggregator scrapers to break, isolate failures so one dead adapter doesn't
   take down the run, and log which sources succeeded
 - Never scrape behind a login or paywall
 - Store raw responses so parsing can be re-run without re-fetching
 
 ## Stack
 
-Not decided yet — pick something simple and self-hostable. Reasonable default:
+Not decided yet, pick something simple and self-hostable. Reasonable default:
 a TypeScript/Python backend for the scrapers, SQLite or Postgres for storage, and a
 lightweight web frontend. Optimize for "I can run this on a cron and forget about it."
 
@@ -128,5 +128,5 @@ lightweight web frontend. Optimize for "I can run this on a cron and forget abou
 3. Greenhouse and other ATS adapters
 4. Job Bank Canada
 5. Minimal web UI over the database
-6. Aggregator scrapers (LinkedIn / Indeed / Glassdoor) — hardest, do last
+6. Aggregator scrapers (LinkedIn / Indeed / Glassdoor), hardest, do last
 7. Scheduling, status tracking, digests

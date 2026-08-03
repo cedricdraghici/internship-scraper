@@ -1,7 +1,7 @@
 /**
  * ATS adapters: Greenhouse and Lever.
  *
- * Both expose free public JSON endpoints per company board — no auth, no scraping.
+ * Both expose free public JSON endpoints per company board, no auth, no scraping.
  * The catch is that board tokens are per-company and unguessable, so COMPANIES below
  * is a hand-verified list. Add to it with `npm run check-board <token>`.
  */

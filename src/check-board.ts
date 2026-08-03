@@ -1,5 +1,5 @@
 /**
- * Board token checker — board tokens are per-company and unguessable, so verify
+ * Board token checker, board tokens are per-company and unguessable, so verify
  * before adding one to src/adapters/ats.ts.
  *
  *   npm run check-board -- shopify hootsuite cohere
@@ -47,7 +47,7 @@ for (const token of tokens) {
       const n = probe.count(await res.text());
       // An empty array usually means the company migrated off that platform.
       if (n > 0) hits.push(`${probe.platform} (${n} postings)`);
-      else hits.push(`${probe.platform} (empty — likely migrated away)`);
+      else hits.push(`${probe.platform} (empty, likely migrated away)`);
     } catch {
       /* not on this platform */
     }

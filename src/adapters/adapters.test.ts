@@ -46,11 +46,11 @@ test('github: column order comes from the header row', () => {
 
 test('github: date cells parse as both absolute dates and relative ages', () => {
   const now = new Date('2026-08-03T00:00:00.000Z');
-  // Absolute — the Canadian list's format. Only handling relative ages left 173 of
+  // Absolute, the Canadian list's format. Only handling relative ages left 173 of
   // 282 rows with no posted_at, which broke "newest first".
   assert.equal(dateCellToIso('Jul 31, 2026', now)?.slice(0, 10), '2026-07-31');
   assert.equal(dateCellToIso('2026-07-31', now)?.slice(0, 10), '2026-07-31');
-  // Relative — speedyapply's format.
+  // Relative, speedyapply's format.
   assert.equal(dateCellToIso('5d', now)?.slice(0, 10), '2026-07-29');
   assert.equal(dateCellToIso('2mo', now)?.slice(0, 10), '2026-06-04');
   // Junk must not become a date.

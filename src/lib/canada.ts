@@ -81,7 +81,7 @@ export function matchCanada(rawLocation: string): CanadaMatch {
   const remote = /\bremote\b|\bwork from home\b|\bwfh\b|\bdistributed\b/.test(loc);
   const mentionsCanada = /\bcanada\b|\bcanadian\b/.test(loc);
 
-  // "Remote (US/Canada)" / "Remote - North America" — genuinely open to Canada.
+  // "Remote (US/Canada)" / "Remote - North America", genuinely open to Canada.
   if (remote && (mentionsCanada || /north america|americas|global|worldwide|anywhere/.test(loc))) {
     return {
       isCanada: true,
@@ -123,7 +123,7 @@ export function matchCanada(rawLocation: string): CanadaMatch {
     }
 
     // Unambiguous Canadian city named alongside a foreign country is a multi-location
-    // posting ("Toronto, Berlin") — keep, but flag it.
+    // posting ("Toronto, Berlin"), keep, but flag it.
     if (foreign && !mentionsCanada) {
       return { isCanada: true, confidence: 'ambiguous', province: code, remote, matchedBy: `city-multi:${city}` };
     }

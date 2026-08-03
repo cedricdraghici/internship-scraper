@@ -2,15 +2,15 @@
  * Deployment entrypoint: serves the dashboard and refreshes it on a schedule.
  *
  * Locally you run `npm run scrape` and `npm run web` separately. On a host there's no
- * one to run the scrape, so this does both in one process — a cron container would
+ * one to run the scrape, so this does both in one process, a cron container would
  * cost a second machine for a job that takes seconds.
  *
  * Two schedules, because the sources differ by two orders of magnitude in cost:
  *
- *   JT_FAST_INTERVAL_MINUTES   GitHub/Simplify/Greenhouse/Lever/Ashby — ~10s per run,
+ *   JT_FAST_INTERVAL_MINUTES   GitHub/Simplify/Greenhouse/Lever/Ashby, ~10s per run,
  *                              and the source of nearly every posting (default 5,
  *                              matching GitHub's own 300s cache-control)
- *   JT_SLOW_INTERVAL_MINUTES   Workday — ~106s per run for ~11 jobs (default 30)
+ *   JT_SLOW_INTERVAL_MINUTES   Workday, ~106s per run for ~11 jobs (default 30)
  *   JT_SCRAPE_ON_BOOT          run both once at startup (default yes)
  */
 
@@ -28,14 +28,14 @@ async function scrapeSafely(label: string, adapters: Adapter[]): Promise<void> {
   // Skip rather than stack: if a run is still going when the next tick fires,
   // overlapping runs would hammer the same endpoints concurrently.
   if (running.has(label)) {
-    console.log(`${label} scrape already in progress — skipping this tick`);
+    console.log(`${label} scrape already in progress, skipping this tick`);
     return;
   }
   running.add(label);
   try {
     await runScrape(adapters);
   } catch (err) {
-    // Never let a failed scrape take down the web server — a stale board still
+    // Never let a failed scrape take down the web server, a stale board still
     // beats no board.
     console.error(`${label} scrape failed:`, err instanceof Error ? err.message : String(err));
   } finally {
