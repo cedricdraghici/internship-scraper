@@ -51,6 +51,29 @@ export const WORKDAY_BOARDS: WorkdayBoard[] = [
   { url: 'https://ciena.wd5.myworkdayjobs.com/en-US/Careers', name: 'Ciena' },
   { url: 'https://salesforce.wd12.myworkdayjobs.com/en-US/External_Career_Site', name: 'Salesforce' },
   { url: 'https://pwc.wd3.myworkdayjobs.com/en-US/Global_Experienced_Careers', name: 'PwC' },
+
+  // Dedicated student/campus tenants. Their totals look tiny next to a general careers
+  // board, but every row is a student role rather than one intern buried in a thousand
+  // senior postings, so they are the highest-signal boards on this platform.
+  { url: 'https://bb.wd3.myworkdayjobs.com/en-US/Student', name: 'BlackBerry (Student)' },
+  { url: 'https://sunlife.wd3.myworkdayjobs.com/en-US/Campus', name: 'Sun Life (Campus)' },
+
+  // Canadian banks, insurers, manufacturers and tech. Host names are not derivable
+  // from company names (TELUS Health is `lifeworks`, OTPP is `otppb`) and site paths
+  // are irregular and case-sensitive, so these are copied from working careers URLs.
+  { url: 'https://magna.wd3.myworkdayjobs.com/en-US/Magna', name: 'Magna International' },
+  { url: 'https://rbc.wd3.myworkdayjobs.com/en-US/RBCGLOBAL1', name: 'RBC' },
+  { url: 'https://manulife.wd3.myworkdayjobs.com/en-US/MFCJH_Jobs', name: 'Manulife' },
+  { url: 'https://thomsonreuters.wd5.myworkdayjobs.com/en-US/External_Career_Site', name: 'Thomson Reuters' },
+  { url: 'https://intactfc.wd3.myworkdayjobs.com/en-US/intactfc', name: 'Intact Financial' },
+  { url: 'https://canadiantirecorporation.wd3.myworkdayjobs.com/en-US/Enterprise_External_Careers_Site', name: 'Canadian Tire' },
+  { url: 'https://bdo.wd3.myworkdayjobs.com/en-US/bdo', name: 'BDO Canada' },
+  { url: 'https://desjardins.wd10.myworkdayjobs.com/en-US/Desjardins', name: 'Desjardins' },
+  { url: 'https://bb.wd3.myworkdayjobs.com/en-US/BlackBerry', name: 'BlackBerry' },
+  { url: 'https://otppb.wd3.myworkdayjobs.com/en-US/OntarioTeachers_Careers', name: "Ontario Teachers' Pension Plan" },
+  { url: 'https://bdc.wd10.myworkdayjobs.com/en-US/BDC_Careers', name: 'BDC' },
+  { url: 'https://navcanada.wd10.myworkdayjobs.com/en-US/NAV_Careers', name: 'NAV Canada' },
+  { url: 'https://cineplex.wd3.myworkdayjobs.com/en-US/Cineplex', name: 'Cineplex' },
 ];
 
 interface WorkdayPosting {

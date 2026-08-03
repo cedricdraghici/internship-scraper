@@ -37,7 +37,21 @@ export const ASHBY_BOARDS: AshbyBoard[] = [
   { token: 'koho', name: 'KOHO' },
   { token: 'hiive', name: 'Hiive' },
   { token: 'float', name: 'Float' },
-  { token: 'relay', name: 'Relay' },
+  // `relayfi`, not `relay`: both respond, but `relay` is a different company's board
+  // with fewer postings.
+  { token: 'relayfi', name: 'Relay Financial' },
+  // More Canadian boards, each verified live against the API.
+  { token: 'docebo', name: 'Docebo' },
+  { token: 'neofinancial', name: 'Neo Financial' },
+  { token: 'thinkific', name: 'Thinkific' },
+  { token: 'trulioo', name: 'Trulioo' },
+  { token: 'visier', name: 'Visier' },
+  { token: 'felix', name: 'Felix Health' },
+  { token: 'nylas', name: 'Nylas' },
+  { token: 'sanctuary', name: 'Sanctuary AI' },
+  { token: 'loopio', name: 'Loopio' },
+  { token: 'rewind', name: 'Rewind' },
+  { token: 'lightspeed', name: 'Lightspeed' },
 ];
 
 interface AshbyAddress {

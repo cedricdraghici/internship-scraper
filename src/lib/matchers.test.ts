@@ -68,6 +68,29 @@ test('roles: target titles match', () => {
   }
 });
 
+test('roles: finance intern programs are excluded, engineering ones are not', () => {
+  // Bank and insurer boards are mostly finance interns. "Financial Advisor Intern -
+  // Mobile" slipped through the intern shorthand, which read "mobile" as mobile dev.
+  for (const t of [
+    'Financial Advisor Intern - Mobile',
+    'Investment Banking Summer Analyst',
+    'Actuarial Internship 2027',
+    'Audit Manager, Internal Audit',
+  ]) {
+    assert.equal(matchRole(t).matches, false, `should exclude: ${t}`);
+  }
+  // The exclusion must stay narrow: these mention finance words but are real
+  // engineering roles, and a bare /risk|analyst/ rule would have dropped them.
+  for (const t of [
+    'Software Developer Intern, Risk Platform',
+    'Backend Developer Co-op, Payments',
+    'Systems/Network Analyst Co-op',
+    'Data Scientist, Fall 2026 (Co-op/Internship)',
+  ]) {
+    assert.equal(matchRole(t).matches, true, `should keep: ${t}`);
+  }
+});
+
 test('roles: false positives excluded', () => {
   const bad = [
     'Sales Engineer',

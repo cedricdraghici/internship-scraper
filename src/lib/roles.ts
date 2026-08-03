@@ -22,6 +22,15 @@ const EXCLUSIONS: Array<[RegExp, string]> = [
   [/\b(professor|lecturer|instructor|teaching assistant|postdoc)\b/, 'academic'],
   [/\bengineering\s+(program|project|product)\s+manager/, 'management'],
   [/\b(program|project|product)\s+manager\b/, 'management'],
+  // Bank and insurer intern programs are mostly finance roles. Without this,
+  // "Financial Advisor Intern - Mobile" matched the intern shorthand, which read
+  // "mobile" as mobile development.
+  // Deliberately narrow: bare "risk" or "analyst" would drop real engineering roles
+  // like "Software Developer Intern, Risk Platform", so match the finance job itself
+  // rather than any mention of a finance-adjacent word.
+  [/\b(financial|finance|investment|banking|wealth|actuarial|accounting|underwriting)\s+(advisor|adviser|analyst|associate|intern(ship)?|co.?op|specialist|officer|manager|consultant|representative)\b/, 'finance'],
+  [/\b(actuarial|audit|tax|teller|branch manager|relationship manager)\b/, 'finance'],
+  [/\b(financial|investment|banking|wealth)\s+(advisor|adviser)\b/, 'non-eng-business'],
 ];
 
 /** [pattern, category, ruleName], first match wins, so order most-specific first. */

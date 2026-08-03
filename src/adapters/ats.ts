@@ -53,6 +53,14 @@ export const GREENHOUSE_BOARDS: Board[] = [
   { token: 'dropbox', name: 'Dropbox' },
   { token: 'flipp', name: 'Flipp' },
   { token: 'tulip', name: 'Tulip' },
+  // Canadian tech, verified live. Geotab and Later are the strongest intern sources here.
+  { token: 'geotab', name: 'Geotab' },
+  { token: 'later', name: 'Later' },
+  { token: 'leagueinc', name: 'League' },
+  { token: 'konradgroup', name: 'Konrad Group' },
+  { token: 'tenstorrent', name: 'Tenstorrent' },
+  { token: 'knak', name: 'Knak' },
+  { token: 'mejuri', name: 'Mejuri' },
 ];
 
 /**
@@ -62,6 +70,13 @@ export const GREENHOUSE_BOARDS: Board[] = [
  */
 export const LEVER_BOARDS: Board[] = [
   { token: 'matchgroup', name: 'Match Group' },
+  // Canadian, verified live. Telesat is the best intern source on this platform.
+  { token: 'telesat', name: 'Telesat' },
+  { token: 'waabi', name: 'Waabi' },
+  { token: 'wattpad', name: 'Wattpad' },
+  { token: 'achievers', name: 'Achievers' },
+  { token: 'zensurance', name: 'Zensurance' },
+  { token: 'mistplay', name: 'Mistplay' },
 ];
 
 interface GreenhouseJob {
