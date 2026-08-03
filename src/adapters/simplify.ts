@@ -19,6 +19,10 @@ export const SIMPLIFY_SOURCES = [
   'https://raw.githubusercontent.com/SimplifyJobs/Summer2027-Internships/dev/.github/scripts/listings.json',
   'https://raw.githubusercontent.com/SimplifyJobs/Summer2026-Internships/dev/.github/scripts/listings.json',
   'https://raw.githubusercontent.com/SimplifyJobs/New-Grad-Positions/dev/.github/scripts/listings.json',
+  // vanshb03's repos publish the same schema. Their rendered READMEs parse to ~126
+  // rows; the JSON behind them carries 332, with real dates and location arrays.
+  'https://raw.githubusercontent.com/vanshb03/Summer2027-Internships/dev/.github/scripts/listings.json',
+  'https://raw.githubusercontent.com/vanshb03/Summer2026-Internships/dev/.github/scripts/listings.json',
 ];
 
 interface SimplifyListing {

@@ -17,6 +17,7 @@ import { workdayAdapter } from './adapters/workday.js';
 import { ashbyAdapter } from './adapters/ashby.js';
 import { simplifyAdapter } from './adapters/simplify.js';
 
+/** Sources that run by default, fastest first. */
 export function allAdapters(): Adapter[] {
   return [
     githubAdapter(),
@@ -25,8 +26,19 @@ export function allAdapters(): Adapter[] {
     leverAdapter(),
     ashbyAdapter(),
     workdayAdapter(),
-    jobBankAdapter(),
   ];
+}
+
+/**
+ * Opt-in sources — `npm run scrape -- jobbank`.
+ *
+ * Job Bank costs ~100s per run (robots.txt `Crawl-delay: 5` × 15 requests) and, since
+ * the tracker went internships-only, contributes nothing: its listings are titled with
+ * NOC occupation names, so no title ever says "intern". Kept working and reachable by
+ * name in case that changes, but off the default path.
+ */
+export function optionalAdapters(): Adapter[] {
+  return [jobBankAdapter()];
 }
 
 export async function runScrape(adapters: Adapter[]): Promise<SourceResult[]> {
@@ -82,12 +94,14 @@ const isMain = process.argv[1] && import.meta.url.endsWith(process.argv[1].split
 if (isMain) {
   const args = process.argv.slice(2).filter((a) => !a.startsWith('--'));
   if (process.argv.includes('--no-cache')) process.env.JT_NO_CACHE = '1';
+  // Named sources may include the opt-in ones; a bare run uses the defaults.
   const adapters = args.length
-    ? allAdapters().filter((a) => args.includes(a.name))
+    ? [...allAdapters(), ...optionalAdapters()].filter((a) => args.includes(a.name))
     : allAdapters();
 
   if (adapters.length === 0) {
-    console.error(`No matching sources. Available: ${allAdapters().map((a) => a.name).join(', ')}`);
+    const names = [...allAdapters(), ...optionalAdapters()].map((a) => a.name).join(', ');
+    console.error(`No matching sources. Available: ${names}`);
     process.exit(1);
   }
   await runScrape(adapters);

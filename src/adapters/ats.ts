@@ -51,6 +51,8 @@ export const GREENHOUSE_BOARDS: Board[] = [
   { token: 'pinterest', name: 'Pinterest' },
   { token: 'airbnb', name: 'Airbnb' },
   { token: 'dropbox', name: 'Dropbox' },
+  { token: 'flipp', name: 'Flipp' },
+  { token: 'tulip', name: 'Tulip' },
 ];
 
 /**

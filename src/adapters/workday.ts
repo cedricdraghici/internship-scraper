@@ -45,6 +45,12 @@ export const WORKDAY_BOARDS: WorkdayBoard[] = [
   { url: 'https://myview.wd3.myworkdayjobs.com/en-US/loblaw_careers', name: 'Loblaw' },
   { url: 'https://workday.wd5.myworkdayjobs.com/en-US/Workday', name: 'Workday' },
   { url: 'https://mlse.wd3.myworkdayjobs.com/en-US/MLSE', name: 'MLSE' },
+  // RBC's early-talent site is student recruiting specifically — a better bet than a
+  // general careers board, where interns are a rounding error.
+  { url: 'https://rbc.wd3.myworkdayjobs.com/en-US/RBCEARLYTALENT1', name: 'RBC (Early Talent)' },
+  { url: 'https://ciena.wd5.myworkdayjobs.com/en-US/Careers', name: 'Ciena' },
+  { url: 'https://salesforce.wd12.myworkdayjobs.com/en-US/External_Career_Site', name: 'Salesforce' },
+  { url: 'https://pwc.wd3.myworkdayjobs.com/en-US/Global_Experienced_Careers', name: 'PwC' },
 ];
 
 interface WorkdayPosting {

@@ -23,8 +23,9 @@ between the two, but employers label the same job either way, so the default
 
 | Command | What it does |
 | --- | --- |
-| `npm run scrape` | Fetch every source |
-| `npm run scrape -- github jobbank` | Fetch only named sources |
+| `npm run scrape` | Fetch every default source (~30s) |
+| `npm run scrape -- github simplify` | Fetch only named sources |
+| `npm run scrape -- jobbank` | Job Bank is opt-in — see below |
 | `npm run scrape -- --no-cache` | Bypass the 30-min response cache |
 | `npm run web` | Serve the dashboard (read-only over the db) |
 | `npm run check-board -- <token>` | Check whether a company has a live Greenhouse/Lever board |
@@ -60,8 +61,8 @@ so the filters can be tuned against real results.
 | Source | Method | Notes |
 | --- | --- | --- |
 | GitHub repos | Raw markdown tables | Canada-specific intern lists + international lists |
-| SimplifyJobs | Published `listings.json` | ~14.6k listings; the single best intern source |
-| Greenhouse | Public JSON API | 32 verified boards |
+| SimplifyJobs / vanshb03 | Published `listings.json` | ~33k listings; the single best intern source |
+| Greenhouse | Public JSON API | 34 verified boards |
 | Lever | Public JSON API | Board tokens are per-company; verify before adding |
 | Ashby | Public JSON API | Cohere, Wealthsimple, 1Password, Jobber — states `employmentType` |
 | Workday | Public CXS JSON API | Banks/enterprises; boards configured by careers URL |
@@ -73,10 +74,12 @@ The curated GitHub lists and SimplifyJobs supply the overwhelming majority. The 
 adapters add employer-direct postings that never reach those lists, and are the only
 sources that stay current between list updates.
 
-**Job Bank is not an internship source.** Its listings are titled with normalized NOC
-occupation names ("software developer"), never the employer's title, so "intern" and
-"stagiaire" never appear in a title; the employment type exists only on each posting's
-detail page, one `Crawl-delay: 5` request apiece. It's kept as a broad full-time source.
+**Job Bank is opt-in** (`npm run scrape -- jobbank`) and contributes nothing today. Its
+listings are titled with normalized NOC occupation names ("software developer"), never
+the employer's title, so "intern" and "stagiaire" never appear in a title; the
+employment type exists only on each posting's detail page, one `Crawl-delay: 5` request
+apiece. That cost it ~100s per run for zero internships once the tracker went
+intern-only, so it's off the default path — still working, just not worth the wait.
 
 Workday internship yield is seasonal — in August most bank/insurer "intern" hits are
 `Internal Audit` and finance roles. Campus postings land there from roughly September.
@@ -99,6 +102,14 @@ LinkedIn, Indeed, and Glassdoor. All three block automated access and prohibit s
 in their terms; a working adapter would need either paid API access or evasion. The
 adapter interface is there if you get authorized access — see `Adapter` in
 [src/types.ts](src/types.ts).
+
+**Checked and rejected** (so they don't get re-tried):
+
+| Source | Why not |
+| --- | --- |
+| SmartRecruiters | Has a cross-company search API (~20k postings, no token needed), but its relevance ranking ignores location entirely — 300 results sampled across `intern toronto`, `intern vancouver` and `stagiaire` returned **zero** Canadian rows. Finding them would mean paging the whole corpus. |
+| Remotive, Himalayas | Remote-only boards, skewed senior and US. Two Canada-eligible rows between them, no internships. |
+| Workable, Recruitee, Jobvite | Public endpoints respond but return no jobs for the Canadian companies checked. |
 
 ## Dedupe
 
