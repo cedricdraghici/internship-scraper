@@ -37,6 +37,12 @@
   }
   input[type=search] { min-width: 260px; flex: 1 1 260px; }
   label.check { display: flex; gap: 6px; align-items: center; font-size: 13px; color: var(--muted); cursor: pointer; }
+  .toggle {
+    background: var(--panel-2); color: var(--muted); border: 1px solid var(--line);
+    border-radius: 8px; padding: 7px 10px; font-size: 13px; font-family: inherit; cursor: pointer;
+  }
+  .toggle:hover { color: var(--fg); }
+  .toggle.on { background: var(--accent); border-color: var(--accent); color: #fff; font-weight: 600; }
   main { padding: 16px 20px 60px; max-width: 1200px; margin: 0 auto; }
   .job {
     background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius);
@@ -85,6 +91,7 @@
       <option value="posted">Date posted</option>
       <option value="found">Newest found</option>
     </select>
+    <button type="button" id="internsOnly" class="toggle">🎓 Interns only</button>
     <label class="check"><input type="checkbox" id="remote" /> Remote</label>
     <label class="check"><input type="checkbox" id="confirmed" /> Confirmed CA only</label>
     <label class="check"><input type="checkbox" id="hide_closed" checked /> Hide rejected</label>
@@ -116,7 +123,7 @@ function fillSelect(el, items, label = (v) => v) {
   const cur = el.value;
   const first = el.querySelector('option').outerHTML;
   el.innerHTML = first + items.map(i =>
-    `<option value="${i.v}">${label(i.v)} (${i.n})</option>`).join('');
+    `<option value="${i.v}">${esc(i.label ?? label(i.v))} (${i.n})</option>`).join('');
   el.value = cur;
 }
 
@@ -205,6 +212,19 @@ for (const id of controls) {
     t = setTimeout(load, ev === 'input' ? 220 : 0);
   });
 }
+
+// "Interns only" drives the type <select> rather than filtering separately, so the
+// button and the dropdown can never disagree about what's being shown.
+function syncInternsButton() {
+  $('internsOnly').classList.toggle('on', $('type').value === 'students');
+}
+$('internsOnly').addEventListener('click', () => {
+  $('type').value = $('type').value === 'students' ? '' : 'students';
+  syncInternsButton();
+  load();
+});
+$('type').addEventListener('change', syncInternsButton);
+
 load();
 </script>
 </body>

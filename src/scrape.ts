@@ -13,9 +13,20 @@ import { normalize } from './lib/normalize.js';
 import { githubAdapter } from './adapters/github-md.js';
 import { greenhouseAdapter, leverAdapter } from './adapters/ats.js';
 import { jobBankAdapter } from './adapters/jobbank.js';
+import { workdayAdapter } from './adapters/workday.js';
+import { ashbyAdapter } from './adapters/ashby.js';
+import { simplifyAdapter } from './adapters/simplify.js';
 
 export function allAdapters(): Adapter[] {
-  return [githubAdapter(), greenhouseAdapter(), leverAdapter(), jobBankAdapter()];
+  return [
+    githubAdapter(),
+    simplifyAdapter(),
+    greenhouseAdapter(),
+    leverAdapter(),
+    ashbyAdapter(),
+    workdayAdapter(),
+    jobBankAdapter(),
+  ];
 }
 
 export async function runScrape(adapters: Adapter[]): Promise<SourceResult[]> {

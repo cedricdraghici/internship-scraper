@@ -24,6 +24,23 @@ export const JOBBANK_QUERIES = [
   'machine learning engineer',
 ];
 
+/**
+ * Job Bank is a weak internship source and intentionally has no intern queries.
+ *
+ * Its listings are titled with normalized NOC occupation names ("software developer"),
+ * not the employer's own title, so the word "intern"/"stagiaire" never reaches us —
+ * searching for it returns the same senior postings (and, for the French terms,
+ * unrelated trades). Employment type lives only on each posting's detail page, which
+ * at `Crawl-delay: 5` costs one request per job to read.
+ *
+ * So this adapter is kept as a broad full-time source, and internship coverage comes
+ * from the ATS adapters (Workday/Greenhouse/Lever/Ashby), where the employer's real
+ * title and an explicit employment type are both in the API response.
+ */
+
+/** Pages to walk per query (25 results each). */
+const PAGES_PER_QUERY = 3;
+
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
 function stripTags(s: string): string {
@@ -88,22 +105,42 @@ export function parseJobBankHtml(html: string): RawJob[] {
   return jobs;
 }
 
-export function jobBankAdapter(queries: string[] = JOBBANK_QUERIES): Adapter {
+export function jobBankAdapter(
+  queries: string[] = JOBBANK_QUERIES,
+  pagesPerQuery: number = PAGES_PER_QUERY,
+): Adapter {
   return {
     name: 'jobbank',
     async fetch(): Promise<RawJob[]> {
       const all: RawJob[] = [];
       const errors: string[] = [];
+      // Queries overlap heavily ("developer intern" ⊂ "software developer intern"),
+      // so drop repeats here rather than fetching and normalizing them twice.
+      const seenUrls = new Set<string>();
+      let first = true;
 
-      for (const [i, q] of queries.entries()) {
-        if (i > 0) await sleep(CRAWL_DELAY_MS); // honour robots.txt
-        const url = `${BASE}/jobsearch/jobsearch?searchstring=${encodeURIComponent(q)}&sort=M`;
-        try {
-          all.push(...parseJobBankHtml(await fetchText(url, {
-            headers: { 'user-agent': 'Mozilla/5.0 (compatible; job-tracker/0.1; personal job search)' },
-          })));
-        } catch (err) {
-          errors.push(`${q}: ${err instanceof Error ? err.message : String(err)}`);
+      for (const q of queries) {
+        for (let page = 1; page <= pagesPerQuery; page++) {
+          if (!first) await sleep(CRAWL_DELAY_MS); // honour robots.txt Crawl-delay: 5
+          first = false;
+
+          const url =
+            `${BASE}/jobsearch/jobsearch?searchstring=${encodeURIComponent(q)}&sort=M` +
+            (page > 1 ? `&page=${page}` : '');
+          try {
+            const jobs = parseJobBankHtml(await fetchText(url, {
+              headers: { 'user-agent': 'Mozilla/5.0 (compatible; job-tracker/0.1; personal job search)' },
+            }));
+            // An empty page means we've run past the end of this query's results.
+            if (jobs.length === 0) break;
+            for (const j of jobs) {
+              if (seenUrls.has(j.url)) continue;
+              seenUrls.add(j.url);
+              all.push(j);
+            }
+          } catch (err) {
+            errors.push(`${q} p${page}: ${err instanceof Error ? err.message : String(err)}`);
+          }
         }
       }
 

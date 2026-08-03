@@ -35,13 +35,24 @@ function queryJobs(params: URLSearchParams): JobRow[] {
     args.push(`%${q}%`, `%${q}%`, `%${q}%`);
   }
   for (const [param, col] of [['source', 'source'], ['province', 'province'],
-                              ['category', 'role_category'], ['type', 'type'],
+                              ['category', 'role_category'],
                               ['status', 'status']] as const) {
     const v = params.get(param);
     if (v) {
       where.push(`${col} = ?`);
       args.push(v);
     }
+  }
+
+  // `type=students` is a grouping, not a stored value: internships arrive labelled
+  // either intern or co-op depending on the employer's wording, and they're the same
+  // thing to the person job-hunting. Everything else is an exact match.
+  const type = params.get('type');
+  if (type === 'students') {
+    where.push("type IN ('intern', 'co-op')");
+  } else if (type) {
+    where.push('type = ?');
+    args.push(type);
   }
   if (params.get('remote') === '1') where.push('remote = 1');
   if (params.get('confirmed') === '1') where.push("canada_confidence = 'confirmed'");
@@ -62,11 +73,17 @@ function facets() {
     (db.prepare(`SELECT ${c} AS v, COUNT(*) AS n FROM jobs WHERE ${c} IS NOT NULL AND ${c} != ''
                  GROUP BY ${c} ORDER BY n DESC`).all() as unknown as Array<{ v: string; n: number }>);
   const one = (sql: string) => (db.prepare(sql).get() as { n: number }).n;
+  const students = one("SELECT COUNT(*) AS n FROM jobs WHERE type IN ('intern', 'co-op')");
   return {
     sources: col('source'),
     provinces: col('province'),
     categories: col('role_category'),
-    types: col('type'),
+    // Pin the intern+co-op grouping to the top of the list — it's the common case
+    // here, and the two stored values are the same thing to a student.
+    types: [
+      ...(students > 0 ? [{ v: 'students', n: students, label: 'intern + co-op' }] : []),
+      ...col('type'),
+    ],
     statuses: col('status'),
     total: one('SELECT COUNT(*) AS n FROM jobs'),
     fresh: one("SELECT COUNT(*) AS n FROM jobs WHERE status = 'new'"),

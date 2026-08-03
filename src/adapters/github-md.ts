@@ -14,14 +14,30 @@
 import type { Adapter, RawJob } from '../types.js';
 import { fetchText } from '../lib/fetch.js';
 
+/**
+ * Curated job-list repos. These are the single best internship source in this project:
+ * they are maintained by students for students, so every row is already a real intern
+ * posting with a company, a location and a link — no employment-type guesswork.
+ *
+ * The Canada-specific lists matter most; the international ones are mostly US rows that
+ * the Canada filter discards, but they do carry Canadian offices of large employers.
+ */
 export const GITHUB_SOURCES = [
+  // Canada-only lists.
+  'https://raw.githubusercontent.com/negarprh/Canadian-Tech-Internships-2026/main/README.md',
+  'https://raw.githubusercontent.com/negarprh/Canadian-Tech-Internships-2026/main/README-2027.md',
+  'https://raw.githubusercontent.com/hanzili/canada_sde_intern_position/main/README.md',
+  'https://raw.githubusercontent.com/hanzili/canada_sde_junior_new_grad_position/main/README.md',
+  // International lists (filtered down to Canadian rows).
   'https://raw.githubusercontent.com/speedyapply/2027-SWE-College-Jobs/main/INTERN_INTL.md',
   'https://raw.githubusercontent.com/speedyapply/2027-SWE-College-Jobs/main/NEW_GRAD_INTL.md',
   'https://raw.githubusercontent.com/speedyapply/2026-SWE-College-Jobs/main/INTERN_INTL.md',
   'https://raw.githubusercontent.com/speedyapply/2026-SWE-College-Jobs/main/NEW_GRAD_INTL.md',
   'https://raw.githubusercontent.com/vanshb03/Summer2027-Internships/main/README.md',
-  'https://raw.githubusercontent.com/SimplifyJobs/Summer2027-Internships/dev/README.md',
-  'https://raw.githubusercontent.com/SimplifyJobs/New-Grad-Positions/dev/README.md',
+  'https://raw.githubusercontent.com/vanshb03/Summer2026-Internships/main/README.md',
+  // Note: the SimplifyJobs repos are NOT listed here. They stopped rendering a
+  // markdown table, so this parser found nothing in them; they're read from their
+  // published listings.json instead — see adapters/simplify.ts.
 ];
 
 /** Strip HTML tags/entities from a markdown table cell. */
@@ -44,10 +60,13 @@ function cellText(cell: string): string {
 function cellUrl(cell: string): string | null {
   const href = cell.match(/href="([^"]+)"/i);
   if (href?.[1]) return href[1];
-  const md = cell.match(/\]\((https?:\/\/[^)]+)\)/);
+  // Markdown links, including the angle-bracket form `[Apply](<https://…>)` that some
+  // repos use to escape URLs containing parentheses. Without the `<>` branch the bare
+  // fallback below matched and kept a trailing ">", producing dead apply links.
+  const md = cell.match(/\]\(<?(https?:\/\/[^)>]+)>?\)/);
   if (md?.[1]) return md[1];
   const bare = cell.match(/https?:\/\/\S+/);
-  return bare?.[0]?.replace(/[),]+$/, '') ?? null;
+  return bare?.[0]?.replace(/[)>,]+$/, '') ?? null;
 }
 
 /** "5d" / "2mo" / "3h" -> approximate ISO timestamp. */
@@ -69,15 +88,52 @@ function splitRow(line: string): string[] {
   return t.split('|').map((c) => c.trim());
 }
 
+/**
+ * Column layout of the table currently being read.
+ *
+ * These repos don't agree on column order: most are company-first, but some put the
+ * title first and add extra columns (hanzili: Title | Company | Role | … | Location).
+ * Reading the header row instead of assuming positions lets one parser handle both.
+ */
+interface Columns {
+  company: number;
+  title: number;
+  location: number;
+}
+
+const DEFAULT_COLUMNS: Columns = { company: 0, title: 1, location: 2 };
+
+/** Read a header row like `| Title | Company | … | Location |` into column indices. */
+function parseHeader(cells: string[]): Columns | null {
+  const names = cells.map((c) => cellText(c).toLowerCase().trim());
+  const find = (...want: string[]) => names.findIndex((n) => want.includes(n));
+
+  const company = find('company', 'company name', 'employer', 'name');
+  const title = find('title', 'role', 'position', 'job title', 'job');
+  const location = find('location', 'locations', 'city', 'location(s)');
+  // A real header names at least a company and a title; anything less is a data row
+  // or a legend table ("| Emoji | Meaning |").
+  if (company < 0 || title < 0 || company === title) return null;
+  return { company, title, location: location < 0 ? DEFAULT_COLUMNS.location : location };
+}
+
 export function parseMarkdownTables(md: string, sourceUrl: string): RawJob[] {
   const jobs: RawJob[] = [];
   const lines = md.split('\n');
   let lastCompany = '';
+  let cols: Columns = DEFAULT_COLUMNS;
 
   for (const line of lines) {
     if (!line.trim().startsWith('|')) continue;
     const cells = splitRow(line);
     if (cells.length < 3) continue;
+
+    // A header row re-defines the layout for every row that follows it.
+    const header = parseHeader(cells);
+    if (header) {
+      cols = header;
+      continue;
+    }
 
     // Skip header and separator rows.
     const first = cellText(cells[0] ?? '').toLowerCase();
@@ -85,9 +141,9 @@ export function parseMarkdownTables(md: string, sourceUrl: string): RawJob[] {
     if (/^-{2,}$/.test((cells[0] ?? '').replace(/[\s:]/g, ''))) continue;
     if (first === 'company' || first === 'name') continue;
 
-    let company = cellText(cells[0] ?? '');
-    const title = cellText(cells[1] ?? '');
-    const location = cellText(cells[2] ?? '');
+    let company = cellText(cells[cols.company] ?? '');
+    const title = cellText(cells[cols.title] ?? '');
+    const location = cellText(cells[cols.location] ?? '');
 
     // "↳" means "same company as previous row".
     if (/^[↳â†³>]+$/.test(company) || company === '') {

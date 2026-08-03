@@ -9,9 +9,13 @@ See [CLAUDE.md](CLAUDE.md) for the design rationale.
 
 ```bash
 npm install
-npm run scrape     # fetch from all sources into data/jobs.db
+npm run scrape     # fetch from all sources into data/jobs.db (~2 min)
 npm run web        # dashboard at http://localhost:4000
 ```
+
+Hunting internships: hit **🎓 Interns only** in the header, or pick
+**intern + co-op** from the type dropdown. Employers label the same job either way,
+so the two are grouped into one filter.
 
 ## Commands
 
@@ -36,6 +40,9 @@ A posting is kept only if it passes **both** filters:
 - **Role** — software engineer/developer, DevOps/SRE/platform, AI/ML engineer.
   Internships and co-ops included. Excludes sales/solutions engineers, other
   engineering disciplines, and management. English and French titles.
+  Intern titles often drop the head word ("Backend Intern", "Engineering Co-op",
+  "Stagiaire en développement de logiciels"), so those shapes match too — while
+  `Internal Audit` and `International Tax` deliberately do not.
 - **Canada** — province names and codes (`Toronto, ON`, `Havelock (ON)`), major cities,
   "Canada", and remote postings open to Canada. Ambiguous cases (bare `Vancouver`,
   `Remote - North America`) are kept and flagged `location?` in the UI rather than dropped.
@@ -47,15 +54,39 @@ so the filters can be tuned against real results.
 
 | Source | Method | Notes |
 | --- | --- | --- |
-| Greenhouse | Public JSON API | 20 verified boards |
+| GitHub repos | Raw markdown tables | Canada-specific intern lists + international lists |
+| SimplifyJobs | Published `listings.json` | ~14.6k listings; the single best intern source |
+| Greenhouse | Public JSON API | 32 verified boards |
 | Lever | Public JSON API | Board tokens are per-company; verify before adding |
-| GitHub repos | Raw markdown tables | speedyapply, SimplifyJobs, vanshb03 lists |
+| Ashby | Public JSON API | Cohere, Wealthsimple, 1Password, Jobber — states `employmentType` |
+| Workday | Public CXS JSON API | Banks/enterprises; boards configured by careers URL |
 | Job Bank Canada | HTML search results | No API/RSS exists; honours `Crawl-delay: 5` |
 
+### Where internships actually come from
+
+The curated GitHub lists and SimplifyJobs supply the overwhelming majority. The ATS
+adapters add employer-direct postings that never reach those lists, and are the only
+sources that stay current between list updates.
+
+**Job Bank is not an internship source.** Its listings are titled with normalized NOC
+occupation names ("software developer"), never the employer's title, so "intern" and
+"stagiaire" never appear in a title; the employment type exists only on each posting's
+detail page, one `Crawl-delay: 5` request apiece. It's kept as a broad full-time source.
+
+Workday internship yield is seasonal — in August most bank/insurer "intern" hits are
+`Internal Audit` and finance roles. Campus postings land there from roughly September.
+
 Adding a company: run `npm run check-board -- <token>` and, if live, add it to
-`GREENHOUSE_BOARDS` or `LEVER_BOARDS` in [src/adapters/ats.ts](src/adapters/ats.ts).
+`GREENHOUSE_BOARDS` or `LEVER_BOARDS` in [src/adapters/ats.ts](src/adapters/ats.ts),
+or `ASHBY_BOARDS` in [src/adapters/ashby.ts](src/adapters/ashby.ts).
 Tokens are unguessable and companies migrate between platforms, so an empty result
 usually means "moved", not "broken".
+
+Adding a Workday employer: paste their real careers URL into `WORKDAY_BOARDS` in
+[src/adapters/workday.ts](src/adapters/workday.ts) — e.g.
+`https://td.wd3.myworkdayjobs.com/en-US/TD_Bank_Careers`. The host/tenant/site triple
+is not guessable (`rbc`, `telus` and `cgi` all 404 or 422, and Loblaw is under host
+`myview`), so copy a URL that works in a browser rather than constructing one.
 
 ## Not implemented
 

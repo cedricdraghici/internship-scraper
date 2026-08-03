@@ -44,6 +44,9 @@ const INCLUSIONS: Array<[RegExp, RoleCategory, string]> = [
   [/\bsoftware\s+(development\s+)?engineer\b/, 'swe', 'software-engineer'],
   [/\bsoftware\s+(developer|dev)\b/, 'swe', 'software-developer'],
   [/\bsoftware\s+engineering\b/, 'swe', 'software-engineering'],
+  // "Software Development Intern" / "Software Development Co-op": the noun form,
+  // with no "engineer"/"developer" head word. Common on Workday postings.
+  [/\bsoftware\s+development\b/, 'swe', 'software-development'],
   [/\bsoftware\s+dev\b/, 'swe', 'software-dev'],
   [/\b(sde|swe)\b/, 'swe', 'sde-swe'],
   [/\b(front.?end|back.?end|full.?stack|web|mobile|ios|android|game|embedded|systems)\s+(engineer|developer|dev)\b/, 'swe', 'specialty-developer'],
@@ -51,15 +54,36 @@ const INCLUSIONS: Array<[RegExp, RoleCategory, string]> = [
   [/\b(programmer|developer)\b/, 'swe', 'generic-developer'],
   [/\bengineer\b.*\b(intern|co.?op)\b/, 'swe', 'engineer-intern'],
 
+  // Intern shorthand: internship titles routinely drop the "engineer"/"developer"
+  // head word ("Machine Learning Intern", "Backend Intern", "Engineering Co-op"),
+  // so the rules above never fire on them. Only trust these when the title actually
+  // says intern/co-op — bare "Data Science" or "Security" is not a role we want.
+  //
+  // `intern` here is deliberately \bintern\b(ship)? and never a bare prefix: "Internal
+  // Audit Manager" and "Internal Sales" would otherwise match, and banks post many of
+  // both. Separators are allowed between the role word and the intern word so
+  // "Data Scientist, Fall 2026 (Co-op/Internship)" still matches.
+  [/\b(ml|machine learning|ai|deep learning|nlp|computer vision|data scien(ce|tist)|applied scien(ce|tist))\b.*\b(intern(ship)?|co.?op)\b/, 'ai-ml', 'ai-ml-intern-shorthand'],
+  [/\b(devops|sre|site reliability|platform|infrastructure|cloud)\b.*\b(intern(ship)?|co.?op)\b/, 'devops', 'devops-intern-shorthand'],
+  [/\b(software|engineering|developer|development|technical|back.?end|front.?end|full.?stack|web|mobile|ios|android|embedded|systems|qa|test automation|programm(er|ing))\b.*\b(intern(ship)?|co.?op)\b/, 'swe', 'swe-intern-shorthand'],
+  // Reverse order: "Intern - Software Engineering", "Co-op, Backend".
+  [/\b(intern(ship)?|co.?op)\b.*\b(software|engineering|developer|development|back.?end|front.?end|full.?stack|web|mobile|devops|machine learning|data scien(ce|tist))\b/, 'swe', 'intern-prefix-shorthand'],
+
   // French titles — common in Quebec postings.
   [/\bing(é|e)nieur\s+(logiciel|en logiciel|d(é|e)veloppement)/, 'swe', 'fr-ingenieur-logiciel'],
   [/\bd(é|e)veloppeur(\.?se)?\b/, 'swe', 'fr-developpeur'],
   [/\bg(é|e)nie logiciel\b/, 'swe', 'fr-genie-logiciel'],
+  // Noun form: "Stagiaire en développement de logiciels", "Stage - Développement logiciel".
+  [/\bd(é|e)veloppement\s+(de\s+)?logiciels?\b/, 'swe', 'fr-developpement-logiciel'],
+  [/\bd(é|e)veloppement\s+(web|mobile|infonuagique|cloud|full.?stack)\b/, 'swe', 'fr-developpement-specialty'],
+  [/\bstagiaire\s+en\s+(d(é|e)veloppement|informatique|logiciel|programmation)/, 'swe', 'fr-stagiaire-dev'],
 ];
 
 // French variants matter: Quebec postings are frequently listed in French
 // ("Stagiaire DevOps - Automne 2026" is an internship, not a full-time role).
-const INTERN = /\bintern(ship)?\b|\bco.?op\b|\bsummer\s+20\d\d\b|\bstudent\b|\bplacement\b|\bstagiaire\b|\bstage\b|\b(é|e)tudiant\b/;
+// Note: co-op patterns deliberately live in COOP only, not here — INTERN is tested
+// first, so repeating them would make `co-op` unreachable.
+const INTERN = /\bintern(ship)?s?\b|\bsummer\s+20\d\d\b|\b(fall|winter|spring|summer)\s+(term|20\d\d)\b|\bstudent\b|\bplacement\b|\bstagiaire\b|\bstages?\b|\b(é|e)tudiant(e)?\b|\bapprenti(ce|ceship)?\b|\bundergrad(uate)?\b|\bwork\s+term\b/;
 const COOP = /\bco.?op\b|\balternance\b/;
 const NEW_GRAD = /\bnew\s?grad(uate)?\b|\bentry.level\b|\buniversity grad|\bcampus\b|\bearly career\b|\bjeune dipl(ô|o)m(é|e)\b/;
 const CONTRACT = /\bcontract(or)?\b|\bfixed.term\b|\btemporary\b|\bfreelance\b|\bcontractuel\b/;
@@ -84,11 +108,19 @@ export function normalizeTitle(title: string): string {
 
 export function classifyType(title: string): JobType | null {
   const t = normalizeTitle(title);
-  if (COOP.test(t)) return 'co-op';
+  // "Intern" wins over "Co-op": titles like "Software Engineering Intern —
+  // Fall-Spring Co-op" contain both, and calling those `co-op` split the real
+  // internships across two filter values. Co-op only fires when nothing says intern.
   if (INTERN.test(t)) return 'intern';
+  if (COOP.test(t)) return 'co-op';
   if (NEW_GRAD.test(t)) return 'new-grad';
   if (CONTRACT.test(t)) return 'contract';
   return 'full-time';
+}
+
+/** True for the student-track types — what the `--interns-only` scrape keeps. */
+export function isStudentType(type: JobType | null): boolean {
+  return type === 'intern' || type === 'co-op';
 }
 
 export function matchRole(title: string): RoleMatch {

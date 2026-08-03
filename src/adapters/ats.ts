@@ -37,6 +37,20 @@ export const GREENHOUSE_BOARDS: Board[] = [
   { token: 'faire', name: 'Faire' },
   { token: 'scaleai', name: 'Scale AI' },
   { token: 'anthropic', name: 'Anthropic' },
+  // Canadian-headquartered.
+  { token: 'd2l', name: 'D2L' },
+  { token: 'ritual', name: 'Ritual' },
+  // US companies with real Canadian engineering offices / Canada-remote roles.
+  { token: 'mongodb', name: 'MongoDB' },
+  { token: 'gitlab', name: 'GitLab' },
+  { token: 'elastic', name: 'Elastic' },
+  { token: 'lyft', name: 'Lyft' },
+  { token: 'samsara', name: 'Samsara' },
+  { token: 'brex', name: 'Brex' },
+  { token: 'twilio', name: 'Twilio' },
+  { token: 'pinterest', name: 'Pinterest' },
+  { token: 'airbnb', name: 'Airbnb' },
+  { token: 'dropbox', name: 'Dropbox' },
 ];
 
 /**

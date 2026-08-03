@@ -16,6 +16,14 @@ export interface FetchOptions {
   retries?: number;
   timeoutMs?: number;
   headers?: Record<string, string>;
+  method?: string;
+  body?: string;
+  /**
+   * The URL to actually request, when it differs from the cache key. POST endpoints
+   * (Workday) return different results for the same URL depending on the body, so
+   * callers pass a body-qualified cache key as `url` and the real endpoint here.
+   */
+  realUrl?: string;
 }
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
@@ -25,7 +33,8 @@ function cachePath(url: string): string {
 }
 
 export async function fetchText(url: string, opts: FetchOptions = {}): Promise<string> {
-  const { retries = 3, timeoutMs = 20_000, headers = {} } = opts;
+  const { retries = 3, timeoutMs = 20_000, headers = {}, method, body, realUrl } = opts;
+  const target = realUrl ?? url;
   // JT_NO_CACHE (set by `npm run scrape -- --no-cache`) forces a fresh fetch.
   const maxAgeMs = process.env.JT_NO_CACHE ? 0 : opts.maxAgeMs ?? 30 * 60 * 1000;
 
@@ -40,7 +49,9 @@ export async function fetchText(url: string, opts: FetchOptions = {}): Promise<s
     try {
       const ctrl = new AbortController();
       const timer = setTimeout(() => ctrl.abort(), timeoutMs);
-      const res = await fetch(url, {
+      const res = await fetch(target, {
+        method: method ?? 'GET',
+        body,
         headers: { 'user-agent': UA, accept: '*/*', ...headers },
         signal: ctrl.signal,
       });
@@ -48,10 +59,10 @@ export async function fetchText(url: string, opts: FetchOptions = {}): Promise<s
 
       // Back off and retry on rate limit / transient server errors.
       if (res.status === 429 || res.status >= 500) {
-        lastErr = new Error(`HTTP ${res.status} for ${url}`);
+        lastErr = new Error(`HTTP ${res.status} for ${target}`);
         continue;
       }
-      if (!res.ok) throw new Error(`HTTP ${res.status} for ${url}`);
+      if (!res.ok) throw new Error(`HTTP ${res.status} for ${target}`);
 
       const text = await res.text();
       mkdirSync(CACHE_DIR, { recursive: true });
