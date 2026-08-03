@@ -138,7 +138,7 @@ async function load() {
   const res = await fetch('/api/jobs?' + params());
   const { jobs, facets } = await res.json();
 
-  $('count').textContent = `${jobs.length} shown · ${facets.total} total · ${facets.fresh} unreviewed`;
+  $('count').textContent = `${facets.total} total · ${facets.fresh} unreviewed`;
 
   if (!facetsLoaded) {
     fillSelect($('source'), facets.sources);
