@@ -119,7 +119,7 @@ function params() {
 function renderCount() {
   // Stale postings are deleted by the scrape rather than filtered here, so `matching`
   // is the whole board unless you have narrowed it with the controls above.
-  $('count').textContent = `${matching} total · ${unreviewed} unreviewed`;
+  $('count').textContent = `${unreviewed} unreviewed · ${matching} total`;
 }
 
 function fillSelect(el, items, label = (v) => v) {
