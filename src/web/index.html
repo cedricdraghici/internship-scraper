@@ -1,0 +1,211 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Job Tracker — Canada</title>
+<style>
+  :root {
+    --bg: #0f1115; --panel: #171a21; --panel-2: #1d212a; --line: #272c37;
+    --fg: #e6e9ef; --muted: #8b93a4; --accent: #5b9dff; --ok: #3fb950;
+    --warn: #d29922; --bad: #f85149; --radius: 10px;
+  }
+  @media (prefers-color-scheme: light) {
+    :root {
+      --bg: #f6f7f9; --panel: #fff; --panel-2: #f0f2f5; --line: #dfe3ea;
+      --fg: #12151a; --muted: #5b6474; --accent: #0b62d6;
+    }
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--bg); color: var(--fg);
+    font: 14px/1.5 ui-sans-serif, -apple-system, "Segoe UI", Roboto, sans-serif;
+  }
+  header {
+    position: sticky; top: 0; z-index: 10; background: var(--panel);
+    border-bottom: 1px solid var(--line); padding: 12px 20px;
+  }
+  .row { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+  h1 { font-size: 16px; margin: 0 12px 0 0; font-weight: 650; letter-spacing: -.01em; }
+  .pill {
+    background: var(--panel-2); border: 1px solid var(--line); border-radius: 999px;
+    padding: 3px 10px; font-size: 12px; color: var(--muted);
+  }
+  input[type=search], select {
+    background: var(--panel-2); color: var(--fg); border: 1px solid var(--line);
+    border-radius: 8px; padding: 7px 10px; font-size: 13px; font-family: inherit;
+  }
+  input[type=search] { min-width: 260px; flex: 1 1 260px; }
+  label.check { display: flex; gap: 6px; align-items: center; font-size: 13px; color: var(--muted); cursor: pointer; }
+  main { padding: 16px 20px 60px; max-width: 1200px; margin: 0 auto; }
+  .job {
+    background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius);
+    padding: 12px 14px; margin-bottom: 8px; display: grid;
+    grid-template-columns: 1fr auto; gap: 10px; align-items: start;
+  }
+  .job h2 { font-size: 15px; margin: 0 0 4px; font-weight: 600; }
+  .job h2 a { color: var(--fg); text-decoration: none; }
+  .job h2 a:hover { color: var(--accent); text-decoration: underline; }
+  .meta { color: var(--muted); font-size: 12.5px; display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+  .tag {
+    font-size: 11px; padding: 2px 7px; border-radius: 6px;
+    background: var(--panel-2); border: 1px solid var(--line);
+  }
+  .tag.swe { color: #79c0ff; } .tag.devops { color: #d2a8ff; } .tag.ai-ml { color: #7ee787; }
+  .tag.intern, .tag\[co-op\] { color: var(--warn); }
+  .tag.amb { color: var(--warn); border-color: var(--warn); }
+  .actions { display: flex; gap: 4px; flex-wrap: wrap; justify-content: flex-end; }
+  button.st {
+    background: var(--panel-2); color: var(--muted); border: 1px solid var(--line);
+    border-radius: 7px; padding: 4px 9px; font-size: 12px; cursor: pointer; font-family: inherit;
+  }
+  button.st:hover { color: var(--fg); border-color: var(--accent); }
+  button.st.on { background: var(--accent); color: #fff; border-color: var(--accent); }
+  .empty { color: var(--muted); text-align: center; padding: 60px 20px; }
+  .runs { font-size: 12px; color: var(--muted); margin-top: 24px; border-top: 1px solid var(--line); padding-top: 12px; }
+  .runs .bad { color: var(--bad); }
+  .runs .good { color: var(--ok); }
+  a.src { color: var(--muted); text-decoration: none; }
+  a.src:hover { color: var(--accent); }
+  @media (max-width: 640px) { .job { grid-template-columns: 1fr; } .actions { justify-content: flex-start; } }
+</style>
+</head>
+<body>
+<header>
+  <div class="row">
+    <h1>Job Tracker <span style="color:var(--muted);font-weight:400">Canada</span></h1>
+    <span class="pill" id="count">…</span>
+    <input type="search" id="q" placeholder="Search title, company, location…" />
+    <select id="source"><option value="">All sources</option></select>
+    <select id="category"><option value="">All roles</option></select>
+    <select id="type"><option value="">All types</option></select>
+    <select id="province"><option value="">All provinces</option></select>
+    <select id="status"><option value="">Any status</option></select>
+    <select id="sort">
+      <option value="posted">Date posted</option>
+      <option value="found">Newest found</option>
+    </select>
+    <label class="check"><input type="checkbox" id="remote" /> Remote</label>
+    <label class="check"><input type="checkbox" id="confirmed" /> Confirmed CA only</label>
+    <label class="check"><input type="checkbox" id="hide_closed" checked /> Hide rejected</label>
+  </div>
+</header>
+
+<main>
+  <div id="list"></div>
+  <div class="runs" id="runs"></div>
+</main>
+
+<script>
+const $ = (id) => document.getElementById(id);
+const STATUSES = ['new', 'interested', 'applied', 'rejected', 'offer'];
+const controls = ['q','source','category','type','province','status','sort','remote','confirmed','hide_closed'];
+let facetsLoaded = false;
+
+function params() {
+  const p = new URLSearchParams();
+  for (const id of controls) {
+    const el = $(id);
+    const v = el.type === 'checkbox' ? (el.checked ? '1' : '') : el.value;
+    if (v) p.set(id, v);
+  }
+  return p;
+}
+
+function fillSelect(el, items, label = (v) => v) {
+  const cur = el.value;
+  const first = el.querySelector('option').outerHTML;
+  el.innerHTML = first + items.map(i =>
+    `<option value="${i.v}">${label(i.v)} (${i.n})</option>`).join('');
+  el.value = cur;
+}
+
+function esc(s) {
+  return String(s ?? '').replace(/[&<>"']/g, c =>
+    ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+}
+
+function ago(iso) {
+  if (!iso) return '';
+  const d = (Date.now() - new Date(iso).getTime()) / 86400000;
+  if (d < 1) return 'today';
+  if (d < 2) return 'yesterday';
+  if (d < 30) return `${Math.floor(d)}d ago`;
+  if (d < 365) return `${Math.floor(d / 30)}mo ago`;
+  return `${Math.floor(d / 365)}y ago`;
+}
+
+async function load() {
+  const res = await fetch('/api/jobs?' + params());
+  const { jobs, facets } = await res.json();
+
+  $('count').textContent = `${jobs.length} shown · ${facets.total} total · ${facets.fresh} unreviewed`;
+
+  if (!facetsLoaded) {
+    fillSelect($('source'), facets.sources);
+    fillSelect($('category'), facets.categories);
+    fillSelect($('type'), facets.types);
+    fillSelect($('province'), facets.provinces);
+    fillSelect($('status'), facets.statuses);
+    facetsLoaded = true;
+  }
+
+  $('list').innerHTML = jobs.length ? jobs.map(j => {
+    const sources = (() => { try { return JSON.parse(j.sources); } catch { return [j.source]; } })();
+    const tags = [
+      j.role_category && `<span class="tag ${j.role_category}">${j.role_category}</span>`,
+      j.type && `<span class="tag">${esc(j.type)}</span>`,
+      j.remote ? '<span class="tag">remote</span>' : '',
+      j.canada_confidence === 'ambiguous'
+        ? `<span class="tag amb" title="Location rule: ${esc(j.canada_matched_by)}">location?</span>` : '',
+    ].filter(Boolean).join('');
+
+    return `<article class="job">
+      <div>
+        <h2><a href="${esc(j.url)}" target="_blank" rel="noopener">${esc(j.title)}</a></h2>
+        <div class="meta">
+          <strong style="color:var(--fg)">${esc(j.company)}</strong>
+          <span>·</span><span>${esc(j.location) || '—'}</span>
+          ${j.salary_raw ? `<span>·</span><span>${esc(j.salary_raw)}</span>` : ''}
+          <span>·</span><span title="${esc(j.posted_at || j.first_seen_at)}">${ago(j.posted_at || j.first_seen_at)}</span>
+          <span>·</span><span>${sources.map(esc).join(' + ')}</span>
+          ${tags}
+        </div>
+      </div>
+      <div class="actions" data-id="${esc(j.id)}">
+        ${STATUSES.map(s =>
+          `<button class="st ${j.status === s ? 'on' : ''}" data-status="${s}">${s}</button>`).join('')}
+      </div>
+    </article>`;
+  }).join('') : '<div class="empty">No jobs match these filters.<br/>Run <code>npm run scrape</code> to fetch more.</div>';
+
+  $('runs').innerHTML = '<strong>Last run per source:</strong> ' + facets.runs.map(r =>
+    `<span class="${r.ok ? 'good' : 'bad'}">${esc(r.source)} ${r.ok ? `✓ ${r.kept} kept` : `✗ ${esc((r.error || '').slice(0, 60))}`}</span>`
+  ).join(' · ');
+}
+
+$('list').addEventListener('click', async (e) => {
+  const btn = e.target.closest('button.st');
+  if (!btn) return;
+  const id = btn.closest('.actions').dataset.id;
+  await fetch('/api/status', {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ id, status: btn.dataset.status }),
+  });
+  load();
+});
+
+let t;
+for (const id of controls) {
+  const el = $(id);
+  const ev = el.tagName === 'INPUT' && el.type === 'search' ? 'input' : 'change';
+  el.addEventListener(ev, () => {
+    clearTimeout(t);
+    t = setTimeout(load, ev === 'input' ? 220 : 0);
+  });
+}
+load();
+</script>
+</body>
+</html>
