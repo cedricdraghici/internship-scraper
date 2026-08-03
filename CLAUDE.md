@@ -86,7 +86,7 @@ Every adapter outputs this, whatever the source looks like:
 - `matched_by` — which title rule fired, for tuning the filter
 - `sponsorship` / `citizenship` notes when the source states them
 - `description` (raw text for keyword search)
-- `status` — my own tracking: new / interested / applied / rejected / offer
+- `status` — my own tracking: new / applied / interview / rejected / offer
 
 ## Canada filtering
 

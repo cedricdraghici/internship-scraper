@@ -2,7 +2,7 @@
 
 export type JobType = 'intern' | 'co-op' | 'new-grad' | 'full-time' | 'contract';
 export type RoleCategory = 'swe' | 'devops' | 'ai-ml';
-export type JobStatus = 'new' | 'interested' | 'applied' | 'rejected' | 'offer';
+export type JobStatus = 'new' | 'applied' | 'interview' | 'rejected' | 'offer';
 
 /** How confident we are that this posting is actually in Canada. */
 export type CanadaConfidence = 'confirmed' | 'ambiguous';

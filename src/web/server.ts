@@ -13,7 +13,7 @@ import type { JobStatus } from '../types.js';
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const PORT = Number(process.env.PORT ?? 4000);
-const VALID_STATUS: JobStatus[] = ['new', 'interested', 'applied', 'rejected', 'offer'];
+const VALID_STATUS: JobStatus[] = ['new', 'applied', 'interview', 'rejected', 'offer'];
 
 interface JobRow {
   id: string; title: string; company: string; location: string; province: string | null;
