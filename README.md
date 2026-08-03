@@ -1,67 +1,123 @@
 # Job Tracker — Internships, Canada
 
-Personal job aggregator. Pulls software/DevOps/AI **internship and co-op** postings in
-Canada from ATS APIs, GitHub job-list repos, and Job Bank Canada into one filterable
-dashboard. Full-time, new-grad and contract roles are dropped at scrape time and never
-reach the database.
+A self-hosted job board for one person. It polls Greenhouse, Lever, Ashby, Workday,
+curated GitHub internship lists and Job Bank on a schedule, keeps only Canadian
+**software / DevOps / AI internships and co-ops**, dedupes them across sources, and
+serves them as one filterable dashboard with per-job application tracking and push
+notifications for new postings.
 
-See [CLAUDE.md](CLAUDE.md) for the design rationale.
+Full-time, new-grad and contract roles are dropped at scrape time and never reach the
+database. Roughly 290 live postings at any time, from ~2,000 fetched per run.
 
-## Quick start
+**[Deploy your own](#deploy-your-own-247-with-phone-alerts)** — one script, free tier,
+about five minutes. Or run it locally:
 
 ```bash
 npm install
-npm run scrape     # fetch from all sources into data/jobs.db (~2 min)
+npm run scrape     # fetch every source into data/jobs.db (~2 min)
 npm run web        # dashboard at http://localhost:4000
 ```
+
+Requires **Node 24+** (it uses the built-in `node:sqlite` module — no native deps, no
+database server). See [CLAUDE.md](CLAUDE.md) for the design rationale.
 
 Everything in the dashboard is an internship or co-op. The type dropdown narrows
 between the two, but employers label the same job either way, so the default
 (both) is usually what you want.
 
-## Deploying (Fly.io)
+## Deploy your own (24/7, with phone alerts)
 
-Puts the dashboard on a private URL that's up 24/7 and scrapes itself twice a day.
+The result: a private URL that stays up whether or not your laptop is on, scrapes
+itself every 5 minutes, and pushes a notification to your phone when a new internship
+appears. Free tier throughout — Fly asks for a card but this fits inside the
+allowance, and ntfy needs no account at all.
+
+### 1. Install the Fly CLI and sign in
 
 ```bash
-brew install flyctl
-fly auth signup                      # or: fly auth login
+brew install flyctl                       # macOS
+# curl -L https://fly.io/install.sh | sh  # Linux / WSL
 
-# Pick a unique app name — Fly names are global. Edit `app` in fly.toml to match.
-fly launch --no-deploy --copy-config
-
-fly volumes create jobtracker_data --size 1 --region yyz
-
-# Generate a real password — don't paste this line as-is. It prints the value once;
-# save it somewhere first, because Fly stores secrets one-way and can't show them again.
-node -e "console.log(require('crypto').randomBytes(18).toString('base64url'))"
-fly secrets set JT_PASSWORD='<the value it printed>'
-
-fly deploy
-fly open
+fly auth signup                           # or: fly auth login
 ```
 
-The browser will ask for a username (anything) and that password.
+### 2. Run the setup script
 
-**Why each piece matters**
+```bash
+git clone https://github.com/<you>/<this-repo>.git
+cd <this-repo>
+npm install
+./setup.sh
+```
 
-- **The volume** holds `jobs.db`. Without it, every redeploy would reset your
-  applied/interview marks along with the container.
-- **`JT_PASSWORD`** gates the whole app, API included. Set it — the board holds your
-  personal application tracking and would otherwise be world-readable. Locally the
-  variable is unset and the dashboard stays open.
+It asks for an app name (Fly names are global, so pick something like
+`yourname-job-tracker`), then creates the app, the volume, a random password, a random
+ntfy topic, and deploys. Re-running it is safe: every step skips work already done.
+
+When it finishes it prints your URL, password, and ntfy topic. **Save the password and
+topic** — Fly stores secrets one-way and cannot show them again.
+
+### 3. Get notifications on your phone
+
+1. Install **ntfy** — [iOS](https://apps.apple.com/us/app/ntfy/id1625396347) ·
+   [Android](https://play.google.com/store/apps/details?id=io.heckel.ntfy)
+2. Tap **+**, and enter the topic the script printed
+3. Leave "Use another server" off, tap **Subscribe**
+
+New postings arrive as a push with the job title and company; tapping one opens the
+application page. Alerts are capped at 5 per scrape with a "+N more" summary, so the
+first run on an empty database can't fire hundreds.
+
+The topic name is the only thing protecting your alerts — anyone who knows it can read
+them, so don't share it. That's why the script generates a random one.
+
+### 4. Sign in
+
+Open the URL. The browser asks for a username (anything — it's ignored) and the
+password the script printed.
+
+### Making it yours
+
+Everything in [src/adapters/](src/adapters/) is a list you can edit:
+
+| To change | Edit |
+| --- | --- |
+| Which companies are polled | `GREENHOUSE_BOARDS` / `LEVER_BOARDS` in [ats.ts](src/adapters/ats.ts), `ASHBY_BOARDS` in [ashby.ts](src/adapters/ashby.ts), `WORKDAY_BOARDS` in [workday.ts](src/adapters/workday.ts) |
+| Which job titles count | `INCLUSIONS` / `EXCLUSIONS` in [roles.ts](src/lib/roles.ts) |
+| Country / region filter | [canada.ts](src/lib/canada.ts) — it's Canada-specific, so a different country means rewriting this |
+| Internships vs all jobs | the student-track filter in [normalize.ts](src/lib/normalize.ts) |
+| Scrape frequency | `JT_FAST_INTERVAL_MINUTES` / `JT_SLOW_INTERVAL_MINUTES` in [fly.toml](fly.toml) |
+
+Run `npm test` after changing the filters — the tests cover the title rules with real
+postings, including the false positives worth keeping out.
+
+### Why the deploy looks the way it does
+
+- **The volume** holds `jobs.db`. Without it every redeploy would wipe your
+  applied/interview marks, the only data that can't be re-scraped.
+- **`JT_PASSWORD`** gates the page *and* the API. Locally it's unset and the dashboard
+  stays open; on a public URL it's the only thing keeping your application tracking
+  private. Ten failed logins from one IP trigger a 15-minute lockout, though a correct
+  password always gets through — a single-user board shouldn't lock out its owner.
 - **`min_machines_running = 1`** keeps the scrape timer alive. Scaling to zero would
   suspend it between visits.
+- **Two scrape schedules.** Workday takes ~106s for ~11 jobs; the other five sources
+  take ~10s and supply nearly everything. Polling them together would mean either
+  wasting two minutes a cycle or under-polling what matters. 5 minutes also matches
+  GitHub's own `cache-control: max-age=300` — polling harder returns identical bytes.
+- **A failed scrape is logged and skipped**, never fatal. A stale board beats no board.
 
-`src/serve.ts` is the deployed entrypoint: it serves the dashboard and runs a scrape on
-boot, then every `JT_SCRAPE_INTERVAL_HOURS` (default 12). A failed scrape is logged and
-skipped — a stale board still beats no board.
-
-Seeding it with the jobs you already have locally is optional; a boot scrape refills an
-empty volume in about 15 seconds. To copy your statuses across anyway:
+To copy a local database up to the deployed volume (optional — a boot scrape fills an
+empty one in ~15 seconds):
 
 ```bash
 fly ssh sftp shell -C 'put data/jobs.db /data/jobs.db'
+```
+
+Backing it up the other way, worth doing once you've marked real applications:
+
+```bash
+fly ssh sftp get /data/jobs.db ./jobs-backup.db
 ```
 
 ## Commands

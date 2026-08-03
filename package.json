@@ -15,6 +15,10 @@
   "author": "",
   "license": "ISC",
   "type": "module",
+  "engines": {
+    "//": "node:sqlite is built in from Node 24; there is no fallback driver.",
+    "node": ">=24"
+  },
   "devDependencies": {
     "@types/node": "^26.1.2",
     "tsx": "^4.23.5",

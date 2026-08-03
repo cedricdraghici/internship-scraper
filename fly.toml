@@ -1,7 +1,7 @@
-# fly.toml app configuration file generated for cedric-job-tracker on 2026-08-03T19:56:59+09:00
+# Fly.io configuration. See https://fly.io/docs/reference/configuration/
 #
-# See https://fly.io/docs/reference/configuration/ for information about how to use this file.
-#
+# `./setup.sh` rewrites `app` and `primary_region` for you — Fly app names are global,
+# so a fork cannot reuse someone else's. Edit them by hand only if you skip the script.
 
 app = 'cedric-job-tracker'
 primary_region = 'yyz'
