@@ -14,13 +14,24 @@ import { allAdapters, runScrape } from './scrape.js';
 const INTERVAL_HOURS = Number(process.env.JT_SCRAPE_INTERVAL_HOURS ?? 12);
 const SCRAPE_ON_BOOT = process.env.JT_SCRAPE_ON_BOOT !== '0';
 
+let scraping = false;
+
 async function scrapeSafely(): Promise<void> {
+  // A full run takes ~2 minutes (Workday dominates). Skip rather than stack, so a
+  // short interval can't pile up overlapping runs hammering the same APIs.
+  if (scraping) {
+    console.log('scrape already in progress — skipping this tick');
+    return;
+  }
+  scraping = true;
   try {
     await runScrape(allAdapters());
   } catch (err) {
     // Never let a failed scrape take down the web server — a stale board still
     // beats no board.
     console.error('scrape failed:', err instanceof Error ? err.message : String(err));
+  } finally {
+    scraping = false;
   }
 }
 
@@ -33,5 +44,7 @@ if (SCRAPE_ON_BOOT) void scrapeSafely();
 if (INTERVAL_HOURS > 0) {
   const ms = INTERVAL_HOURS * 60 * 60 * 1000;
   setInterval(() => void scrapeSafely(), ms);
-  console.log(`scheduler → scraping every ${INTERVAL_HOURS}h`);
+  // Fractional values are allowed (0.25 = 15 min), so report minutes when under an hour.
+  const label = INTERVAL_HOURS < 1 ? `${Math.round(INTERVAL_HOURS * 60)}m` : `${INTERVAL_HOURS}h`;
+  console.log(`scheduler → scraping every ${label}`);
 }
